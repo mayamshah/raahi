@@ -1,8 +1,10 @@
 package main
 
-import "fmt"
-import "net/http"
-import "io/ioutil"
+import (
+    "fmt"
+    "net/http"
+    "io/ioutil"
+ )
 
 const KEY = "AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 
