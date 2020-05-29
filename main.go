@@ -8,23 +8,10 @@ import (
     "net/http"
     "io/ioutil"
     "encoding/json"
-    // "strconv"
  )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 const URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
-
-func input_to_address(input string) {
-    arr := strings.Split(input," ")
-    var address string
-    for _, s := range arr {
-        address += "+" + s
-    }
-    address = strings.TrimPrefix(address, "+")
-    return address
-}
-
-func create_geo
 
 func main() {
 
@@ -39,9 +26,13 @@ func main() {
         if strings.Contains(input,"") { break }
     }
 
-    //properly form the address for the api url    
-    address := input_to_address(input)
-
+    //properly form the address for the api url
+    arr := strings.Split(input," ")
+    var address string
+    for _, s := range arr {
+        address += "+" + s
+    }
+    address = strings.TrimPrefix(address, "+")
 
     //create the api url and get the json response
     url := URL + address + KEY
@@ -53,7 +44,7 @@ func main() {
     resp.Body.Close() 
 
 
-    //get the latitude and longitude coordinates
+    //get the latitude and longitude
     var f interface{}
     json.Unmarshal(response, &f)   
     m := f.(map[string]interface{})
@@ -65,11 +56,8 @@ func main() {
     j := f.(map[string]interface{})
     f = j["location"]
     i := f.(map[string]interface{})
-    lat := i["lat"]
-    lon := i["lng"]
-    
-    fmt.Printf(lat)
-    fmt.Printf(lon)
+    fmt.Println(i["lat"])
+    fmt.Println(i["lng"])
 
 
 
