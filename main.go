@@ -8,10 +8,12 @@ import (
     "net/http"
     "io/ioutil"
     "encoding/json"
+    "math"
  )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 const URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
+const EQUATOR_LENGTH = 69.172
 
 func address_to_api_call (address string) string {
     //properly form the address for the api url
@@ -61,6 +63,26 @@ func extract_coordinates (response []byte) (float64,float64) {
     return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
 
+func possible_routes (lat float64, lng float64, distance float64) [8][2]float64{
+    distance_lat := 1 / (69 / distance)
+    one_degree_lng := math.Cos(lat * math.Pi/180) * EQUATOR_LENGTH
+    distance_lng := 1 / (one_degree_lng / distance)
+    root2_lat :=  math.Sqrt(2) * distance_lat
+    root2_lng :=  math.Sqrt(2) * distance_lng
+
+    p0 := [2]float64{lat + distance_lat, lng}
+    p1 := [2]float64{lat + root2_lat, lng + root2_lng}
+    p2 := [2]float64{lat, lng + distance_lng}
+    p3 := [2]float64{lat - root2_lat, lng + root2_lng}
+    p4 := [2]float64{lat - distance_lat, lng}
+    p5 := [2]float64{lat - root2_lat, lng - root2_lng}
+    p6 := [2]float64{lat, lng - distance_lng}
+    p7 := [2]float64{lat + root2_lat, lng - root2_lng}
+
+    return [8][2]float64{p0, p1, p2, p3, p4, p5, p6, p7}
+
+}
+
 func main() {
 
     //setup the scanner
@@ -89,8 +111,9 @@ func main() {
     //get the latitude and longitude
     lat, lng := extract_coordinates(response)
 
-    fmt.Println(lat)
-    fmt.Println(lng)
+    //get the possible routes
+    routes := possible_routes(lat, lng, 0.5)
 
+    fmt.Println(routes)
 
 }
