@@ -59,6 +59,11 @@ type DistanceResp struct {
 	Status   string    `json:"status"`
 }
 
+type Point struct {
+    lat float64
+    lng float64
+}
+
 func distance(oLat float64, oLng float64, dLat float64, dLng float64) string {
 	orgLat := strconv.FormatFloat(oLat, 'f', 6, 64)
 	orgLng := strconv.FormatFloat(oLng, 'f', 6, 64)
@@ -122,23 +127,23 @@ func extract_coordinates (response []byte) (float64,float64) {
     return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
 
-func possible_routes (lat float64, lng float64, distance float64) [8][2]float64{
+func possible_routes_straight_line (lat float64, lng float64, distance float64) [][]Point{
     distance_lat := 1 / (69 / distance)
     one_degree_lng := math.Cos(lat * math.Pi/180) * EQUATOR_LENGTH
     distance_lng := 1 / (one_degree_lng / distance)
     root2_lat :=  math.Sqrt(2) * distance_lat
     root2_lng :=  math.Sqrt(2) * distance_lng
 
-    p0 := [2]float64{lat + distance_lat, lng}
-    p1 := [2]float64{lat + root2_lat, lng + root2_lng}
-    p2 := [2]float64{lat, lng + distance_lng}
-    p3 := [2]float64{lat - root2_lat, lng + root2_lng}
-    p4 := [2]float64{lat - distance_lat, lng}
-    p5 := [2]float64{lat - root2_lat, lng - root2_lng}
-    p6 := [2]float64{lat, lng - distance_lng}
-    p7 := [2]float64{lat + root2_lat, lng - root2_lng}
+    p0 := Point{lat: lat + distance_lat, lng: lng}
+    p1 := Point{lat: lat + root2_lat,lng: lng + root2_lng}
+    p2 := Point{lat: lat,lng: lng + distance_lng}
+    p3 := Point{lat: lat - root2_lat,lng: lng + root2_lng}
+    p4 := Point{lat: lat - distance_lat,lng: lng}
+    p5 := Point{lat: lat - root2_lat,lng: lng - root2_lng}
+    p6 := Point{lat: lat,lng: lng - distance_lng}
+    p7 := Point{lat: lat + root2_lat,lng: lng - root2_lng}
 
-    return [8][2]float64{p0, p1, p2, p3, p4, p5, p6, p7}
+    return [][]Point{{p0}, {p1}, {p2}, {p3}, {p4}, {p5}, {p6}, {p7}}
 
 }
 
@@ -171,7 +176,7 @@ func main() {
     lat, lng := extract_coordinates(response)
 
     //get the possible routes
-    routes := possible_routes(lat, lng, 0.5)
+    routes := possible_routes_straight_line(lat, lng, 0.5)
 
     fmt.Println(routes)
 
