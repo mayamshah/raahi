@@ -9,6 +9,7 @@ import (
     "io/ioutil"
     "encoding/json"
     "math"
+    "strconv"
  )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -34,6 +35,46 @@ type GeocodeResults struct {
 type GeocodeResp struct{ 
     Results []GeocodeResults `json:"results"`
     Status string `json:"status"`
+}
+
+type valText struct {
+	Value string `json:"value"`
+	Text  string `json:"text"`
+}
+
+type Elems struct {
+	Status   string  `json:"status"`
+	Duration valText `json:"duration"`
+	Distance valText `json:"distance"`
+}
+
+type Between struct {
+	Elements []Elems `json:"elements"`
+}
+
+type DistanceResp struct {
+	DestAdds []string  `json:"destination_addresses"`
+	OrgAdds  []string  `json:"origin_addresses"`
+	Rows     []Between `json:"rows"`
+	Status   string    `json:"status"`
+}
+
+func distance(oLat float64, oLng float64, dLat float64, dLng float64) string {
+	orgLat := strconv.FormatFloat(oLat, 'f', 6, 64)
+	orgLng := strconv.FormatFloat(oLng, 'f', 6, 64)
+	dstLat := strconv.FormatFloat(dLat, 'f', 6, 64)
+	dstLng := strconv.FormatFloat(dLng, 'f', 6, 64)
+	const mode = "walking"
+	const key = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
+	const url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
+	urlCall := url + "origins=" + orgLat + "," + orgLng + "&destinations=" + dstLat + "," + dstLng + "&mode=" + mode + key
+	response := api_request(urlCall)
+
+	var resp_body DistanceResp
+	json.Unmarshal(response, &resp_body)
+
+	return resp_body.Rows[0].Elements[0].Distance.Text
+
 }
 
 func address_to_api_call (address string) string {
