@@ -15,6 +15,27 @@ const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 const URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
 const EQUATOR_LENGTH = 69.172
 
+type GeocodeGeometry struct {
+    Location map[string]interface{} `json:"location"`
+    Location_type string `json:"location_type"`
+    Viewport interface{} `json:"viewport"`
+}
+
+type GeocodeResults struct {
+    Access_points interface{} `json:"access_points"`
+    Address_components interface{} `json:"address_components"`
+    Formatted_address string `json:"formatted_address"`
+    Geometry GeocodeGeometry `json:"geometry"`
+    Place_id string `json:"place_id"`
+    Plus_code interface{} `json:"plus_code"`
+    Types interface{} `json:"types"`
+}
+
+type GeocodeResp struct{ 
+    Results []GeocodeResults `json:"results"`
+    Status string `json:"status"`
+}
+
 func address_to_api_call (address string) string {
     //properly form the address for the api url
     arr := strings.Split(address," ")
@@ -44,21 +65,18 @@ func api_request (url string) []byte {
 }
 
 func check_response (response []byte) bool {
-    var resp_body interface{}
+    var resp_body GeocodeResp
     json.Unmarshal(response,&resp_body)
-    status := resp_body.(map[string]interface{})["status"]
+    status := resp_body.Status
     if (status == "OK") {return true}
     return false
 
 }
 
 func extract_coordinates (response []byte) (float64,float64) {
-    var resp_body interface{}
-    json.Unmarshal(response,&resp_body)
-    results := resp_body.(map[string]interface{})["results"]
-    geometry := results.([]interface{})[0].(map[string]interface{})["geometry"]
-    location := geometry.(map[string]interface{})["location"]
-    coordinates := location.(map[string]interface{})
+    var resp_body GeocodeResp
+    json.Unmarshal(response, &resp_body)
+    coordinates := resp_body.Results[0].Geometry.Location
     
     return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
