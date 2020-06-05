@@ -13,7 +13,9 @@ import (
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
-const URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
+const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
+const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
+const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 
 type GeocodeGeometry struct {
@@ -42,20 +44,20 @@ type valText struct {
 	Text  string `json:"text"`
 }
 
-type Elems struct {
+type DistanceElems struct {
 	Status   string  `json:"status"`
 	Duration valText `json:"duration"`
 	Distance valText `json:"distance"`
 }
 
-type Between struct {
-	Elements []Elems `json:"elements"`
+type DistanceRows struct {
+	Elements []DistanceElems `json:"elements"`
 }
 
 type DistanceResp struct {
 	DestAdds []string  `json:"destination_addresses"`
 	OrgAdds  []string  `json:"origin_addresses"`
-	Rows     []Between `json:"rows"`
+	Rows     []DistanceRows `json:"rows"`
 	Status   string    `json:"status"`
 }
 
@@ -64,15 +66,21 @@ type Point struct {
 	lng float64
 }
 
+type make_route func(point Point, distance float64, offset float64) []Point
+
+func NewPoint(lat float64, lng float64) Point {
+	this := new(Point)
+	this.lat = lat
+	this.lng = lng
+	return *this
+}
+
 func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
 	orgLat := strconv.FormatFloat(oLat, 'f', 6, 64)
 	orgLng := strconv.FormatFloat(oLng, 'f', 6, 64)
 	dstLat := strconv.FormatFloat(dLat, 'f', 6, 64)
 	dstLng := strconv.FormatFloat(dLng, 'f', 6, 64)
-	const mode = "walking"
-	const key = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
-	const url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
-	urlCall := url + "origins=" + orgLat + "," + orgLng + "&destinations=" + dstLat + "," + dstLng + "&mode=" + mode + key
+	urlCall := DISTANCE_URL + "origins=" + orgLat + "," + orgLng + "&destinations=" + dstLat + "," + dstLng + MODE + KEY
 	response := api_request(urlCall)
 
 	var resp_body DistanceResp
@@ -82,9 +90,9 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
 
 }
 
-func getDistance(pathSlice [][]Point, org Point) [8]float64 {
-	var allDists [8]float64
-	for i, v := range pathSlice {
+func getDistance(pathSlice [][]Point, org Point) []float64 {
+	var allDists []float64
+	for _, v := range pathSlice {
 		someDist := 0
 		prevLat := org.lat
 		prevLng := org.lng
@@ -92,13 +100,13 @@ func getDistance(pathSlice [][]Point, org Point) [8]float64 {
 			curLat := x.lat
 			curLng := x.lng
 			someDist += distance(prevLat, prevLng, curLat, curLng)
-			print(someDist)
+			// print(someDist)
 			prevLat = curLat
 			prevLng = curLng
 		}
 		someDist += distance(prevLat, prevLng, org.lat, org.lng)
 		const mtoMi float64 = 0.00062137
-		allDists[i] = float64(someDist) * mtoMi
+		allDists = append(allDists, float64(someDist) * mtoMi)
 	}
 	fmt.Println(allDists)
 	return allDists
@@ -114,7 +122,7 @@ func address_to_api_call(address string) string {
 	address_url = strings.TrimPrefix(address_url, "+")
 
 	//create the api url and get the json response
-	url := URL + address_url + KEY
+	url := GEOCODE_URL + address_url + KEY
 	return url
 }
 
@@ -151,23 +159,55 @@ func extract_coordinates(response []byte) (float64, float64) {
 	return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
 
-func possible_routes_straight_line(lat float64, lng float64, distance float64) [][]Point {
+func get_point (point Point, distance float64, angle float64) Point {
+	//angle is degrees 
+	radians := angle * math.Pi/180
 	distance_lat := 1 / (69 / distance)
-	one_degree_lng := math.Cos(lat*math.Pi/180) * EQUATOR_LENGTH
+	one_degree_lng := math.Cos(point.lat*math.Pi/180) * EQUATOR_LENGTH
 	distance_lng := 1 / (one_degree_lng / distance)
-	root2_lat := math.Sqrt(2) * distance_lat
-	root2_lng := math.Sqrt(2) * distance_lng
 
-	p0 := Point{lat: lat + distance_lat, lng: lng}
-	p1 := Point{lat: lat + root2_lat, lng: lng + root2_lng}
-	p2 := Point{lat: lat, lng: lng + distance_lng}
-	p3 := Point{lat: lat - root2_lat, lng: lng + root2_lng}
-	p4 := Point{lat: lat - distance_lat, lng: lng}
-	p5 := Point{lat: lat - root2_lat, lng: lng - root2_lng}
-	p6 := Point{lat: lat, lng: lng - distance_lng}
-	p7 := Point{lat: lat + root2_lat, lng: lng - root2_lng}
+	return NewPoint(point.lat + math.Cos(radians)*distance_lat, point.lng + math.Sin(radians)*distance_lng)
+}
 
-	return [][]Point{{p0}, {p1}, {p2}, {p3}, {p4}, {p5}, {p6}, {p7}}
+func create_routes (point Point, distance float64, num float64, make_route make_route) [][]Point {
+	angle_increase := 360 / num
+	offset := 0.0
+	var routes [][]Point
+
+	for offset < 360 {
+		route := make_route(point, distance, offset)
+		routes = append(routes, route)
+		offset += angle_increase
+	}
+	return routes
+}
+
+var straight_line make_route = func (point Point, distance float64, offset float64) []Point {
+									return []Point{get_point(point, distance / 2, offset)}
+							    }
+
+func execute(input string, route_function make_route) {
+
+	//form url from address
+	url := address_to_api_call(input)
+
+	//get response from google api server
+	response := api_request(url)
+
+	//check to see if address exists
+	if !check_response(response) {
+		fmt.Println("Address doesn't exist")
+		return
+	}
+
+	//get the latitude and longitude
+	lat, lng := extract_coordinates(response)
+	origin := NewPoint(lat,lng)
+
+	//get the possible routes
+	routes := create_routes(origin, 0.8, 8.0, route_function)
+
+	getDistance(routes, origin)
 
 }
 
@@ -186,25 +226,7 @@ func main() {
 		}
 	}
 
-	//form url from address
-	url := address_to_api_call(input)
+	execute(input, straight_line)
 
-	//get response from google api server
-	response := api_request(url)
-
-	//check to see if address exists
-	if !check_response(response) {
-		fmt.Println("Address doesn't exist")
-		return
-	}
-
-	//get the latitude and longitude
-	lat, lng := extract_coordinates(response)
-	fmt.Println(lat, lng)
-	//get the possible routes
-	routes := possible_routes_straight_line(lat, lng, 0.5)
-
-	fmt.Println(routes)
-	var temp Point = Point{lat: lat, lng: lng}
-	getDistance(routes, temp)
+	
 }
