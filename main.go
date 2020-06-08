@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -55,15 +56,21 @@ type DistanceRows struct {
 }
 
 type DistanceResp struct {
-	DestAdds []string  `json:"destination_addresses"`
-	OrgAdds  []string  `json:"origin_addresses"`
+	DestAdds []string       `json:"destination_addresses"`
+	OrgAdds  []string       `json:"origin_addresses"`
 	Rows     []DistanceRows `json:"rows"`
-	Status   string    `json:"status"`
+	Status   string         `json:"status"`
 }
 
 type Point struct {
 	lat float64
 	lng float64
+}
+
+type DistAndPath struct {
+	path     []Point
+	distance float64
+	desired  float64
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -75,6 +82,7 @@ func NewPoint(lat float64, lng float64) Point {
 	return *this
 }
 
+//finds distance between 2 given cooridnates
 func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
 	orgLat := strconv.FormatFloat(oLat, 'f', 6, 64)
 	orgLng := strconv.FormatFloat(oLng, 'f', 6, 64)
@@ -83,6 +91,10 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
 	urlCall := DISTANCE_URL + "origins=" + orgLat + "," + orgLng + "&destinations=" + dstLat + "," + dstLng + MODE + KEY
 	response := api_request(urlCall)
 
+	if !check_responseDistance(response) {
+		fmt.Println("Status not okay")
+	}
+
 	var resp_body DistanceResp
 	json.Unmarshal(response, &resp_body)
 
@@ -90,8 +102,9 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
 
 }
 
-func getDistance(pathSlice [][]Point, org Point) []float64 {
-	var allDists []float64
+//given paths, origin, and desired distance, returns slice of all distance lengths and paths
+func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
+	var allDists []DistAndPath
 	for _, v := range pathSlice {
 		someDist := 0
 		prevLat := org.lat
@@ -100,15 +113,23 @@ func getDistance(pathSlice [][]Point, org Point) []float64 {
 			curLat := x.lat
 			curLng := x.lng
 			someDist += distance(prevLat, prevLng, curLat, curLng)
-			// print(someDist)
 			prevLat = curLat
 			prevLng = curLng
 		}
 		someDist += distance(prevLat, prevLng, org.lat, org.lng)
+		// convert output in meters to miles
 		const mtoMi float64 = 0.00062137
-		allDists = append(allDists, float64(someDist) * mtoMi)
+		//only includes paths which are at least the desired length
+		if float64(someDist)*mtoMi > desired {
+			temp := new(DistAndPath)
+			temp.distance = float64(someDist) * mtoMi
+			temp.path = v
+			temp.desired = desired
+			allDists = append(allDists, *temp)
+		}
+
 	}
-	fmt.Println(allDists)
+	//fmt.Println(allDists)
 	return allDists
 }
 
@@ -140,8 +161,19 @@ func api_request(url string) []byte {
 	return response
 }
 
-func check_response(response []byte) bool {
+func check_responseGeocode(response []byte) bool {
 	var resp_body GeocodeResp
+	json.Unmarshal(response, &resp_body)
+	status := resp_body.Status
+	if status == "OK" {
+		return true
+	}
+	return false
+
+}
+
+func check_responseDistance(response []byte) bool {
+	var resp_body DistanceResp
 	json.Unmarshal(response, &resp_body)
 	status := resp_body.Status
 	if status == "OK" {
@@ -159,17 +191,17 @@ func extract_coordinates(response []byte) (float64, float64) {
 	return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
 
-func get_point (point Point, distance float64, angle float64) Point {
-	//angle is degrees 
-	radians := angle * math.Pi/180
+func get_point(point Point, distance float64, angle float64) Point {
+	//angle is degrees
+	radians := angle * math.Pi / 180
 	distance_lat := 1 / (69 / distance)
 	one_degree_lng := math.Cos(point.lat*math.Pi/180) * EQUATOR_LENGTH
 	distance_lng := 1 / (one_degree_lng / distance)
 
-	return NewPoint(point.lat + math.Cos(radians)*distance_lat, point.lng + math.Sin(radians)*distance_lng)
+	return NewPoint(point.lat+math.Cos(radians)*distance_lat, point.lng+math.Sin(radians)*distance_lng)
 }
 
-func create_routes (point Point, distance float64, num float64, make_route make_route) [][]Point {
+func create_routes(point Point, distance float64, num float64, make_route make_route) [][]Point {
 	angle_increase := 360 / num
 	offset := 0.0
 	var routes [][]Point
@@ -182,9 +214,9 @@ func create_routes (point Point, distance float64, num float64, make_route make_
 	return routes
 }
 
-var straight_line make_route = func (point Point, distance float64, offset float64) []Point {
-									return []Point{get_point(point, distance / 2, offset)}
-							    }
+var straight_line make_route = func(point Point, distance float64, offset float64) []Point {
+	return []Point{get_point(point, distance/2, offset)}
+}
 
 func execute(input string, route_function make_route) {
 
@@ -195,19 +227,29 @@ func execute(input string, route_function make_route) {
 	response := api_request(url)
 
 	//check to see if address exists
-	if !check_response(response) {
+	if !check_responseGeocode(response) {
 		fmt.Println("Address doesn't exist")
 		return
 	}
 
 	//get the latitude and longitude
 	lat, lng := extract_coordinates(response)
-	origin := NewPoint(lat,lng)
+	origin := NewPoint(lat, lng)
 
 	//get the possible routes
 	routes := create_routes(origin, 0.8, 8.0, route_function)
+	//desired distance hard coded as 1 mile
+	desired := 1
+	pathDetails := getDistance(routes, origin, float64(desired))
 
-	getDistance(routes, origin)
+	//sorts difference desired distance from path distance from least to greatest
+	sort.SliceStable(pathDetails, func(i, j int) bool {
+		return math.Abs(pathDetails[i].distance-pathDetails[i].desired) < math.Abs(pathDetails[j].distance-pathDetails[j].desired)
+	})
+	fmt.Println(pathDetails)
+
+	//Outputs best path with distance and percent error
+	fmt.Println("Best Path:", pathDetails[0].path, "\nDistance:", pathDetails[0].distance, "\nPercent Error:", (pathDetails[0].distance-pathDetails[0].desired)/pathDetails[0].desired*100, "%")
 
 }
 
@@ -228,5 +270,4 @@ func main() {
 
 	execute(input, straight_line)
 
-	
 }
