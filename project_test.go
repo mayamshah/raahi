@@ -26,7 +26,6 @@ func TestStraightLine(t *testing.T) {
 		// {`1037 Chestnut St, Philadelphia, PA 1910`, `1`, 1},
 		// {`4551 SW 5th St, Coral Gables, FL 33134`,`1`, 1},
 
-
 	}
 		for _, test := range tests {
 		success, percent_error := execute(test.address, test.distance, straight_line, test.error_fix) 
@@ -57,7 +56,7 @@ func TestSquareRoute(t *testing.T) {
 		// {`425 5th Ave, New York, NY 10016`, `1`, 1},
 		// {`1037 Chestnut St, Philadelphia, PA 1910`, `1`, 1},
 		// {`4551 SW 5th St, Coral Gables, FL 33134`,`1`, 1},
-
+    
 	}
 		for _, test := range tests {
 		success, percent_error := execute(test.address, test.distance, square_route, test.error_fix) 
