@@ -211,7 +211,7 @@ var right_triangle make_route = func(point Point, distance float64, offset float
 var right_triangleOther make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := distance / (2.0 + math.Sqrt(2.0))
 	p0 := get_point(point, side_length, offset+90.0)
-	p1 := get_point(point, side_length, offset+180.0)
+	p1 := get_point(p0, side_length, offset)
 
 	return []Point{p0, p1}
 }
