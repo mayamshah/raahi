@@ -19,7 +19,6 @@ const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?u
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 
-
 type GeocodeGeometry struct {
 	Location      map[string]interface{} `json:"location"`
 	Location_type string                 `json:"location_type"`
@@ -158,7 +157,6 @@ func get_point(point Point, distance float64, angle float64) Point {
 	return NewPoint(point.lat+math.Cos(radians)*distance_lat, point.lng+math.Sin(radians)*distance_lng)
 }
 
-
 //Given an origin, desired distance, number of different routes it wants and a function that
 //determines the shape of the route, returns a list of possible routes
 func create_routes(point Point, distance float64, num float64, make_route make_route) [][]Point {
@@ -184,13 +182,38 @@ var square_route make_route = func(point Point, distance float64, offset float64
 
 	side_length := (distance / 4)
 
-	p0 := point
-	p1 := get_point(point, side_length, offset+135.0)
-	p2 := get_point(point, distance / 4 * math.Sqrt(2) , offset+90.0)
-	p3 := get_point(point, side_length, offset+45.0)
+	p0 := get_point(point, side_length, offset+135.0)
+	p1 := get_point(point, distance/4*math.Sqrt(2), offset+90.0)
+	p2 := get_point(point, side_length, offset+45.0)
 
+	return []Point{p0, p1, p2}
+}
 
-	return []Point{p0,p1,p2,p3}
+var equilateral_triangle make_route = func(point Point, distance float64, offset float64) []Point {
+	side_length := (distance / 3.0)
+
+	p0 := get_point(point, side_length, offset+60.0)
+	p1 := get_point(point, side_length, offset+120.0)
+
+	return []Point{p0, p1}
+}
+
+//isosceles
+var right_triangle make_route = func(point Point, distance float64, offset float64) []Point {
+	side_length := distance / (2.0 + math.Sqrt(2.0))
+	p0 := get_point(point, side_length, offset)
+	p1 := get_point(point, side_length, offset+90.0)
+
+	return []Point{p0, p1}
+}
+
+//isosceles
+var right_triangleOther make_route = func(point Point, distance float64, offset float64) []Point {
+	side_length := distance / (2.0 + math.Sqrt(2.0))
+	p0 := get_point(point, side_length, offset+90.0)
+	p1 := get_point(point, side_length, offset+180.0)
+
+	return []Point{p0, p1}
 }
 
 //finds distance between 2 given cooridnates
@@ -232,7 +255,7 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 		const mtoMi float64 = 0.00062137
 		//only includes paths which are at least the desired length
 		if float64(someDist)*mtoMi > desired {
-		// if true {
+			// if true {
 			temp := new(DistAndPath)
 			temp.distance = float64(someDist) * mtoMi
 			temp.path = v
@@ -245,9 +268,8 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 	return allDists
 }
 
-
 //given an address, distance and route, finds a path
-func execute(input string, distance_string string, route_function make_route, error_fix float64) (bool, float64){
+func execute(input string, distance_string string, route_function make_route, error_fix float64) (bool, float64) {
 
 	//convert distance to float64
 	//check to see if distance is a proper number
@@ -274,13 +296,13 @@ func execute(input string, distance_string string, route_function make_route, er
 	origin := NewPoint(lat, lng)
 
 	//get the possible routes
-	routes := create_routes(origin, distance * (error_fix), 8.0, route_function)
+	routes := create_routes(origin, distance*(error_fix), 8.0, route_function)
 	//desired distance hard coded as 1 mile
 	desired := 1
 	pathDetails := getDistance(routes, origin, float64(desired))
 
 	//checks to make sure there are paths found
-	if (len(pathDetails) == 0) {
+	if len(pathDetails) == 0 {
 		fmt.Println("No paths found")
 		return false, 0
 	}
@@ -291,7 +313,7 @@ func execute(input string, distance_string string, route_function make_route, er
 	})
 	fmt.Println(pathDetails)
 
-	percent_error := (pathDetails[0].distance-pathDetails[0].desired)/pathDetails[0].desired*100
+	percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
 	//Outputs best path with distance and percent error
 	fmt.Println("Best Path:", pathDetails[0].path, "\nDistance:", pathDetails[0].distance, "\nPercent Error:", percent_error, "%")
 
@@ -328,6 +350,5 @@ func main() {
 	}
 
 	execute(input, distance, straight_line, 1.0)
-
 
 }
