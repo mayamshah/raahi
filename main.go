@@ -16,6 +16,7 @@ import (
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
 const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
+const NEAREST_RODE_URL = "https://roads.googleapis.com/v1/nearestRoads?points="
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 
@@ -61,6 +62,21 @@ type DistanceResp struct {
 	Rows     []DistanceRows `json:"rows"`
 	Status   string         `json:"status"`
 }
+
+type NearestPoint struct {
+	Latitude float64 	`json:"latitude"`
+	Longitude float64  	`json:"longitude"`
+}
+
+type NearestLocation struct {
+	Location NearestPoint  `json:"location"`
+	OriginalIndex int      `json:"originalIndex"`
+	PlaceId string         `json:"placeId"`
+}
+type NearestResp struct {
+	SnappedPoints []NearestLocation `json:"snappedPoints"`
+}
+
 
 type Point struct {
 	lat float64
@@ -157,11 +173,29 @@ func get_point(point Point, distance float64, angle float64) Point {
 	return NewPoint(point.lat+math.Cos(radians)*distance_lat, point.lng+math.Sin(radians)*distance_lng)
 }
 
+func points_to_angle (p1 Point, p2 Point) float64 {
+	slope := (p2.lng - p1.lng) / (p1.lat - p2.lat)
+	radians := math.Atan(slope)
+	degrees := radians * 180 / math.Pi
+	return degrees
+
+}
+func get_offset(point Point) float64 {
+	url := NEAREST_RODE_URL +  strconv.FormatFloat(point.lat, 'f', 6, 64) + "," + strconv.FormatFloat(point.lng, 'f', 6, 64) + KEY
+	response := api_request(url)
+	var resp_body NearestResp
+	json.Unmarshal(response, &resp_body)
+	new_point := NewPoint(resp_body.SnappedPoints[0].Location.Latitude, resp_body.SnappedPoints[0].Location.Longitude)
+	angle := points_to_angle(point, new_point)
+	fmt.Println(angle)
+	return angle
+}
+
 //Given an origin, desired distance, number of different routes it wants and a function that
 //determines the shape of the route, returns a list of possible routes
 func create_routes(point Point, distance float64, num float64, make_route make_route) [][]Point {
 	angle_increase := 360 / num
-	offset := 0.0
+	offset := get_offset(point)
 	var routes [][]Point
 
 	for offset < 360 {
@@ -352,3 +386,8 @@ func main() {
 	execute(input, distance, straight_line, 1.0)
 
 }
+
+// func main() {
+// 	origin := NewPoint(37.2864076,-122.0081492)
+// 	get_offset(origin)
+// }
