@@ -1,13 +1,13 @@
-package main
+package app
 
 import (
-	"bufio"
+	// "bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
-	"os"
+	// "os"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,6 +19,18 @@ const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?u
 const NEAREST_RODE_URL = "https://roads.googleapis.com/v1/nearestRoads?points="
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
+
+type Request struct {
+	Address string `json:"address"`
+	Distance string `json:"distance"`
+}
+
+type Response struct {
+	Path []Point
+	Distance float64
+	PercentError float64
+	Error string
+}
 
 type GeocodeGeometry struct {
 	Location      map[string]interface{} `json:"location"`
@@ -303,14 +315,13 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 }
 
 //given an address, distance and route, finds a path
-func execute(input string, distance_string string, route_function make_route, error_fix float64) (bool, float64) {
+func execute_request(input string, distance_string string, route_function make_route, error_fix float64) ([]Point, float64, float64, string) {
 
 	//convert distance to float64
 	//check to see if distance is a proper number
 	distance, err := strconv.ParseFloat(distance_string, 64)
 	if err != nil {
-		fmt.Println("Not a valid distance")
-		return false, 0
+		return nil, 0, 0, "Not a valid distance"
 	}
 
 	//form url from address
@@ -321,8 +332,7 @@ func execute(input string, distance_string string, route_function make_route, er
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
-		fmt.Println("Address doesn't exist")
-		return false, 0
+		return nil, 0, 0, "Address doesn't exist"
 	}
 
 	//get the latitude and longitude
@@ -337,8 +347,7 @@ func execute(input string, distance_string string, route_function make_route, er
 
 	//checks to make sure there are paths found
 	if len(pathDetails) == 0 {
-		fmt.Println("No paths found")
-		return false, 0
+		return nil, 0, 0, "No paths found"
 	}
 
 	//sorts difference desired distance from path distance from least to greatest
@@ -349,43 +358,64 @@ func execute(input string, distance_string string, route_function make_route, er
 
 	percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
 	//Outputs best path with distance and percent error
-	fmt.Println("Best Path:", pathDetails[0].path, "\nDistance:", pathDetails[0].distance, "\nPercent Error:", percent_error, "%")
-
-	return true, percent_error
+	
+	return pathDetails[0].path, pathDetails[0].distance, percent_error, ``
 }
 
-func main() {
-
-	//setup the scanner
-	scanner := bufio.NewScanner(os.Stdin)
-
-	//ask for address
-	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
-
-	//read user input
-	var input string
-	for scanner.Scan() {
-		input = scanner.Text()
-		if strings.Contains(input, "") {
-			break
-		}
-	}
-
-	//ask for distance
-	fmt.Printf("Enter desired distance in miles\n")
-
-	//read user input
-	var distance string
-	for scanner.Scan() {
-		distance = scanner.Text()
-		if strings.Contains(distance, "") {
-			break
-		}
-	}
-
-	execute(input, distance, straight_line, 1.0)
-
+func newResponse(path []Point, distance float64, percent_error float64, err string) *Response {
+	this := new(Response)
+	this.Path = path
+	this.Distance = distance
+	this.PercentError = percent_error
+	this.Error = err
+	return this
 }
+
+
+func Execute(w http.ResponseWriter, r *http.Request){
+
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	var req Request
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	path, distance, percent_error, err := execute_request(req.Address, req.Distance, straight_line, 1.0)
+	json.NewEncoder(w).Encode(newResponse(path,distance, percent_error, err))
+}
+// func main() {
+
+// 	//setup the scanner
+// 	scanner := bufio.NewScanner(os.Stdin)
+
+// 	//ask for address
+// 	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
+
+// 	//read user input
+// 	var input string
+// 	for scanner.Scan() {
+// 		input = scanner.Text()
+// 		if strings.Contains(input, "") {
+// 			break
+// 		}
+// 	}
+
+// 	//ask for distance
+// 	fmt.Printf("Enter desired distance in miles\n")
+
+// 	//read user input
+// 	var distance string
+// 	for scanner.Scan() {
+// 		distance = scanner.Text()
+// 		if strings.Contains(distance, "") {
+// 			break
+// 		}
+// 	}
+
+// 	execute(input, distance, straight_line, 1.0)
+
+// }
 
 // func main() {
 // 	origin := NewPoint(37.2864076,-122.0081492)
