@@ -5,6 +5,7 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from "axios";
 import Map from "./Map.js"
+import MyMapComponent from "./MyMapComponent.js"
 
 let endpoint = "http://localhost:8080/api/execute";
 
@@ -51,26 +52,6 @@ function Display() {
     setCurrentInput(e.target.value)
   }
 
-//   function MapIt (path) {
-//     console.log(path[0])
-//     console.log(path[1])
-//     const GoogleMapExample = withGoogleMap(props => (
-//       <GoogleMap
-//         defaultCenter = { { lat: path[0], lng: path[1] } }
-//         defaultZoom = { 13 }
-//       >
-//       </GoogleMap>
-//    ));
-   
-//     return (
-//       <div>
-//           <GoogleMapExample
-//           containerElement={ <div style={{ height: `500px`, width: '500px' }} /> }
-//           mapElement={ <div style={{ height: `100%` }} /> }
-//         />
-//       </div>
-//       );
-// }
   return (
     <div>
         <form className={classes.textField} noValidate>
@@ -80,6 +61,7 @@ function Display() {
         Enter
         </Button>  
         <Map org = {result} />  
+        <MyMapComponent org = {result}/>
     </div>
     );
 }
