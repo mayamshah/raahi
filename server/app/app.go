@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+
 	// "os"
 	"sort"
 	"strconv"
@@ -21,15 +22,15 @@ const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 
 type Request struct {
-	Address string `json:"address"`
+	Address  string `json:"address"`
 	Distance string `json:"distance"`
 }
 
 type Response struct {
-	Path []Point
-	Distance float64
+	Path         []float64
+	Distance     float64
 	PercentError float64
-	Error string
+	Error        string
 }
 
 type GeocodeGeometry struct {
@@ -76,19 +77,18 @@ type DistanceResp struct {
 }
 
 type NearestPoint struct {
-	Latitude float64 	`json:"latitude"`
-	Longitude float64  	`json:"longitude"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 type NearestLocation struct {
-	Location NearestPoint  `json:"location"`
-	OriginalIndex int      `json:"originalIndex"`
-	PlaceId string         `json:"placeId"`
+	Location      NearestPoint `json:"location"`
+	OriginalIndex int          `json:"originalIndex"`
+	PlaceId       string       `json:"placeId"`
 }
 type NearestResp struct {
 	SnappedPoints []NearestLocation `json:"snappedPoints"`
 }
-
 
 type Point struct {
 	lat float64
@@ -185,7 +185,7 @@ func get_point(point Point, distance float64, angle float64) Point {
 	return NewPoint(point.lat+math.Cos(radians)*distance_lat, point.lng+math.Sin(radians)*distance_lng)
 }
 
-func points_to_angle (p1 Point, p2 Point) float64 {
+func points_to_angle(p1 Point, p2 Point) float64 {
 	slope := (p2.lng - p1.lng) / (p1.lat - p2.lat)
 	radians := math.Atan(slope)
 	degrees := radians * 180 / math.Pi
@@ -193,7 +193,7 @@ func points_to_angle (p1 Point, p2 Point) float64 {
 
 }
 func get_offset(point Point) float64 {
-	url := NEAREST_RODE_URL +  strconv.FormatFloat(point.lat, 'f', 6, 64) + "," + strconv.FormatFloat(point.lng, 'f', 6, 64) + KEY
+	url := NEAREST_RODE_URL + strconv.FormatFloat(point.lat, 'f', 6, 64) + "," + strconv.FormatFloat(point.lng, 'f', 6, 64) + KEY
 	response := api_request(url)
 	var resp_body NearestResp
 	json.Unmarshal(response, &resp_body)
@@ -315,7 +315,7 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 }
 
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string, route_function make_route, error_fix float64) ([]Point, float64, float64, string) {
+func execute_request(input string, distance_string string, route_function make_route, error_fix float64) ([]float64, float64, float64, string) {
 
 	//convert distance to float64
 	//check to see if distance is a proper number
@@ -338,6 +338,7 @@ func execute_request(input string, distance_string string, route_function make_r
 	//get the latitude and longitude
 	lat, lng := extract_coordinates(response)
 	origin := NewPoint(lat, lng)
+	fmt.Println(origin)
 
 	//get the possible routes
 	routes := create_routes(origin, distance*(error_fix), 8.0, route_function)
@@ -354,15 +355,24 @@ func execute_request(input string, distance_string string, route_function make_r
 	sort.SliceStable(pathDetails, func(i, j int) bool {
 		return math.Abs(pathDetails[i].distance-pathDetails[i].desired) < math.Abs(pathDetails[j].distance-pathDetails[j].desired)
 	})
-	fmt.Println(pathDetails)
 
 	percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
 	//Outputs best path with distance and percent error
-	
-	return pathDetails[0].path, pathDetails[0].distance, percent_error, ``
+
+	var res []float64
+	res = append(res, origin.lat, origin.lng)
+	for _, pt := range pathDetails[0].path {
+		curLat := pt.lat
+		curLng := pt.lng
+		res = append(res, curLat, curLng)
+	}
+	fmt.Println(pathDetails[0].path)
+	fmt.Println("HELLOOOO")
+	fmt.Println(res)
+	return res, pathDetails[0].distance, percent_error, ``
 }
 
-func newResponse(path []Point, distance float64, percent_error float64, err string) *Response {
+func newResponse(path []float64, distance float64, percent_error float64, err string) *Response {
 	this := new(Response)
 	this.Path = path
 	this.Distance = distance
@@ -371,8 +381,7 @@ func newResponse(path []Point, distance float64, percent_error float64, err stri
 	return this
 }
 
-
-func Execute(w http.ResponseWriter, r *http.Request){
+func Execute(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -381,9 +390,10 @@ func Execute(w http.ResponseWriter, r *http.Request){
 
 	var req Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	path, distance, percent_error, err := execute_request(req.Address, req.Distance, straight_line, 1.0)
-	json.NewEncoder(w).Encode(newResponse(path,distance, percent_error, err))
+	path, distance, percent_error, err := execute_request(req.Address, req.Distance, square_route, 1.0)
+	json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
 }
+
 // func main() {
 
 // 	//setup the scanner

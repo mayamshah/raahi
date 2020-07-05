@@ -4,6 +4,7 @@ import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from "axios";
+import Map from "./Map.js"
 
 let endpoint = "http://localhost:8080/api/execute";
 
@@ -27,7 +28,7 @@ const useStyles = makeStyles((theme) => ({
 
 function Display() {
   const classes = useStyles();
-  const [result, setResult] = useState("nothing");
+  const [result, setResult] = useState([40.443659, -79.944641]);
   const [currentInput, setCurrentInput] = useState("");
 
 
@@ -41,7 +42,8 @@ function Display() {
       .then(res => {
         console.log(res);
         console.log(res.data);
-        setResult(res.data.Error)
+        setResult(res.data.Path)
+        console.log(res.data.Path)
       })
   }
 
@@ -49,6 +51,26 @@ function Display() {
     setCurrentInput(e.target.value)
   }
 
+//   function MapIt (path) {
+//     console.log(path[0])
+//     console.log(path[1])
+//     const GoogleMapExample = withGoogleMap(props => (
+//       <GoogleMap
+//         defaultCenter = { { lat: path[0], lng: path[1] } }
+//         defaultZoom = { 13 }
+//       >
+//       </GoogleMap>
+//    ));
+   
+//     return (
+//       <div>
+//           <GoogleMapExample
+//           containerElement={ <div style={{ height: `500px`, width: '500px' }} /> }
+//           mapElement={ <div style={{ height: `100%` }} /> }
+//         />
+//       </div>
+//       );
+// }
   return (
     <div>
         <form className={classes.textField} noValidate>
@@ -57,9 +79,7 @@ function Display() {
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
         </Button>  
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-           {result}
-        </Typography>
+        <Map org = {result} />  
     </div>
     );
 }
