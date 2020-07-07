@@ -30,13 +30,14 @@ const useStyles = makeStyles((theme) => ({
 function Display() {
   const classes = useStyles();
   const [result, setResult] = useState([40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641]);
-  const [currentInput, setCurrentInput] = useState("");
+  const [currentAddress, setCurrentAddress] = useState("");
+  const [currentMiles, setCurrentMiles] = useState("0");
 
 
   function getResult() {
      const request = {
-        address: currentInput,
-        distance: "1"
+        address: currentAddress,
+        distance: currentMiles
       };
 
       axios.post(endpoint, request)
@@ -48,14 +49,27 @@ function Display() {
       })
   }
 
-  function handleChange(e) {
-    setCurrentInput(e.target.value)
+  function handleAddress(e) {
+    setCurrentAddress(e.target.value)
+  }
+
+  function handleMiles(e) {
+    setCurrentMiles(e.target.value)
   }
 
   return (
     <div>
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          What is your starting point?
+        </Typography>
         <form className={classes.textField} noValidate>
-          <TextField id="standard-basic" label="Address" onChange={e => handleChange(e)}/>
+          <TextField id="standard-basic" label="Address" onChange={e => handleAddress(e)}/>
+        </form>
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          How many miles?
+        </Typography>
+        <form className={classes.textField} noValidate>
+          <TextField id="standard-basic" label="Miles" onChange={e => handleMiles(e)}/>
         </form>
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
@@ -71,9 +85,6 @@ function App() {
   const classes = useStyles();
   return (
     <div className={classes.paper}> 
-      <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-      	What is your starting point?
-      </Typography>
       <Display />
     </div>
   );
