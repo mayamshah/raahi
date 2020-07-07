@@ -4,6 +4,8 @@ import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from "axios";
+import Map from "./Map.js"
+import MyMapComponent from "./MyMapComponent.js"
 
 let endpoint = "http://localhost:8080/api/execute";
 
@@ -27,7 +29,7 @@ const useStyles = makeStyles((theme) => ({
 
 function Display() {
   const classes = useStyles();
-  const [result, setResult] = useState("nothing");
+  const [result, setResult] = useState([40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641]);
   const [currentAddress, setCurrentAddress] = useState("");
   const [currentMiles, setCurrentMiles] = useState("0");
 
@@ -42,7 +44,8 @@ function Display() {
       .then(res => {
         console.log(res);
         console.log(res.data);
-        setResult(res.data.Error)
+        setResult(res.data.Path)
+        console.log(res.data.Path)
       })
   }
 
@@ -70,10 +73,8 @@ function Display() {
         </form>
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
-        </Button>  
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-           {result}
-        </Typography>
+        </Button>   
+        <MyMapComponent org = {result} />
     </div>
     );
 }
