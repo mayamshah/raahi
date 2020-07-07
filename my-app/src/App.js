@@ -29,7 +29,7 @@ const useStyles = makeStyles((theme) => ({
 
 function Display() {
   const classes = useStyles();
-  const [result, setResult] = useState([40.443659, -79.944641]);
+  const [result, setResult] = useState([40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641]);
   const [currentInput, setCurrentInput] = useState("");
 
 
@@ -59,9 +59,8 @@ function Display() {
         </form>
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
-        </Button>  
-        <Map org = {result} />  
-        <MyMapComponent org = {result}/>
+        </Button>   
+        <MyMapComponent org = {result} />
     </div>
     );
 }
