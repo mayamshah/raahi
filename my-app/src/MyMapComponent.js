@@ -1,4 +1,20 @@
 /*global google*/
+// import React from 'react'
+// import  { compose, withProps, lifecycle } from 'recompose'
+// import {withScriptjs, withGoogleMap, GoogleMap, DirectionsRenderer} from 'react-google-maps'
+
+// function createWayPoints(org) {
+
+//     var waypoints = []
+//     var i = 0
+//     for (i = 0; i < org.length; i = i + 2) {
+//       waypoints.push({location: new google.maps.LatLng(org[i], org[i+1]), stopover: false})
+//     }
+
+//     return waypoints
+// }
+
+/*global google*/
 import React from 'react'
 import  { compose, withProps, lifecycle } from 'recompose'
 import {withScriptjs, withGoogleMap, GoogleMap, DirectionsRenderer} from 'react-google-maps'

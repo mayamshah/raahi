@@ -11,5 +11,6 @@ func Router() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/execute", app.Execute).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/executestrava", app.ExecuteStrava).Methods("POST", "OPTIONS")
 	return router
 }
