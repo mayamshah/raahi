@@ -69,7 +69,7 @@ import (
 
 func TestStravaFunction(t *testing.T) {
 	
-	app.ExecuteStravaRequest("12543 Palmtag Drive, Saratoga CA", "50", 1.0)
+	app.ExecuteStravaRequest("12543 Palmtag Drive, Saratoga CA", "5", "50", 1.0)
 
 }
 
