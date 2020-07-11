@@ -2,6 +2,7 @@ package app
 
 import (
 	// "bufio"
+
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,6 +21,8 @@ const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?u
 const NEAREST_RODE_URL = "https://roads.googleapis.com/v1/nearestRoads?points="
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
+const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
+const GEOKEY = "&username=gulab"
 
 type Request struct {
 	Address  string `json:"address"`
@@ -88,6 +91,11 @@ type NearestLocation struct {
 }
 type NearestResp struct {
 	SnappedPoints []NearestLocation `json:"snappedPoints"`
+}
+
+type NearIntersectResp struct {
+	Credits      string            `json:"credits"`
+	Intersection map[string]string `json:"intersection"`
 }
 
 type Point struct {
@@ -181,8 +189,26 @@ func get_point(point Point, distance float64, angle float64) Point {
 	distance_lat := 1 / (69 / distance)
 	one_degree_lng := math.Cos(point.lat*math.Pi/180) * EQUATOR_LENGTH
 	distance_lng := 1 / (one_degree_lng / distance)
+	lat := point.lat + math.Cos(radians)*distance_lat
+	lng := point.lng + math.Sin(radians)*distance_lng
+	url := NINTERSECT_URL + strconv.FormatFloat(lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(lng, 'f', 6, 64) + GEOKEY
+	response := api_request(url)
+	var resp_body NearIntersectResp
+	json.Unmarshal(response, &resp_body)
+	var resLat float64
+	var resLng float64
+	if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
+		resLat = s1
+	} else {
+		panic(err)
+	}
+	if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
+		resLng = s2
+	} else {
+		panic(err)
+	}
 
-	return NewPoint(point.lat+math.Cos(radians)*distance_lat, point.lng+math.Sin(radians)*distance_lng)
+	return NewPoint(resLat, resLng)
 }
 
 func points_to_angle(p1 Point, p2 Point) float64 {
@@ -423,7 +449,7 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 // 		}
 // 	}
 
-// 	execute(input, distance, straight_line, 1.0)
+// 	execute_request(input, distance, square_route, 1.0)
 
 // }
 
