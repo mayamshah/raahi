@@ -30,7 +30,8 @@ const useStyles = makeStyles((theme) => ({
 
 function Display() {
   const classes = useStyles();
-  const [result, setResult] = useState([40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641]);
+  const [result, setResult] = useState([[40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641], [40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641], [40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641],]);
+  const [resDist, setResDist] = useState([0.0, 0.0, 0.0])
   const [currentAddress, setCurrentAddress] = useState("");
   const [currentMiles, setCurrentMiles] = useState("0");
 
@@ -46,6 +47,7 @@ function Display() {
         console.log(res);
         console.log(res.data);
         setResult(res.data.Path)
+        setResDist(res.data.Distance)
         console.log(res.data.Path)
       })
   }
@@ -75,7 +77,19 @@ function Display() {
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
         </Button>   
-        <MyMapComponent org = {result} />
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          {resDist[0].toString() + " mile route below"}
+        </Typography>
+        <MyMapComponent org = {result[0]} />
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          {resDist[1].toString() + " mile route below"}
+        </Typography>
+        <MyMapComponent org = {result[1]} />
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          {resDist[2].toString() + " mile route below"}
+        </Typography>
+        <MyMapComponent org = {result[2]} />
+               
     </div>
     );
 }

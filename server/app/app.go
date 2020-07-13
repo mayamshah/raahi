@@ -31,8 +31,8 @@ type Request struct {
 }
 
 type Response struct {
-	Path         []float64
-	Distance     float64
+	Path         [][]float64
+	Distance     []float64
 	PercentError float64
 	Error        string
 }
@@ -224,7 +224,6 @@ func get_point(point Point, distance float64, angle float64) Point {
 	lat := point.lat + math.Cos(radians)*distance_lat
 	lng := point.lng + math.Sin(radians)*distance_lng
 	url := NINTERSECT_URL + strconv.FormatFloat(lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(lng, 'f', 6, 64) + GEOKEY
-	fmt.Println(url)
 	response := api_request(url)
 	var resp_body NearIntersectResp
 	json.Unmarshal(response, &resp_body)
@@ -374,13 +373,13 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 }
 
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string, route_function make_route, error_fix float64) ([]float64, float64, float64, string) {
+func execute_request(input string, distance_string string, route_function make_route, error_fix float64) ([][]float64, []float64, float64, string) {
 
 	//convert distance to float64
 	//check to see if distance is a proper number
 	distance, err := strconv.ParseFloat(distance_string, 64)
 	if err != nil {
-		return nil, 0, 0, "Not a valid distance"
+		return nil, nil, 0, "Not a valid distance"
 	}
 
 	//form url from address
@@ -391,7 +390,7 @@ func execute_request(input string, distance_string string, route_function make_r
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
-		return nil, 0, 0, "Address doesn't exist"
+		return nil, nil, 0, "Address doesn't exist"
 	}
 
 	//get the latitude and longitude
@@ -407,7 +406,7 @@ func execute_request(input string, distance_string string, route_function make_r
 
 	//checks to make sure there are paths found
 	if len(pathDetails) == 0 {
-		return nil, 0, 0, "No paths found"
+		return nil, nil, 0, "No paths found"
 	}
 
 	//sorts difference desired distance from path distance from least to greatest
@@ -418,20 +417,32 @@ func execute_request(input string, distance_string string, route_function make_r
 	percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
 	//Outputs best path with distance and percent error
 
-	var res []float64
-	res = append(res, origin.lat, origin.lng)
-	for _, pt := range pathDetails[0].path {
-		curLat := pt.lat
-		curLng := pt.lng
-		res = append(res, curLat, curLng)
+	resPaths := make([][]float64, len(pathDetails))
+	// for i := range resPaths {
+    // 	resPaths[i] = make([]float64, (len(pathDetails.path) + 1)* 2)
+	// }
+	var resDists []float64
+	fmt.Println(len(pathDetails))
+	var i int
+	for _, elem := range pathDetails {
+		fmt.Println(elem)
+		resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
+		fmt.Println(resPaths)
+		for _, pt := range pathDetails[i].path {
+			curLat := pt.lat
+			curLng := pt.lng
+			resPaths[i] = append(resPaths[i], curLat, curLng)
+		}
+		resDists = append(resDists, pathDetails[i].distance)
+		i++
 	}
-	fmt.Println(pathDetails[0].path)
-	fmt.Println("HELLOOOO")
-	fmt.Println(res)
-	return res, pathDetails[0].distance, percent_error, ``
+
+	fmt.Println(resPaths)
+	fmt.Println(resDists)
+	return resPaths, resDists, percent_error, ``
 }
 
-func newResponse(path []float64, distance float64, percent_error float64, err string) *Response {
+func newResponse(path [][]float64, distance []float64, percent_error float64, err string) *Response {
 	this := new(Response)
 	this.Path = path
 	this.Distance = distance
