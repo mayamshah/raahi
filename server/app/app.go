@@ -2,7 +2,6 @@ package app
 
 import (
 	// "bufio"
-
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,11 +9,10 @@ import (
 	"net/http"
 
 	// "os"
+	"flag"
 	"sort"
 	"strconv"
 	"strings"
-	"github.com/strava/go.strava"
-	"flag"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -39,10 +37,10 @@ type Response struct {
 }
 
 type StravaResponse struct {
-	Path         []float64
-	Start        []float64
-	End          []float64
-	Error        string
+	Path  []float64
+	Start []float64
+	End   []float64
+	Error string
 }
 
 type GeocodeGeometry struct {
@@ -158,7 +156,7 @@ func api_request(url string) []byte {
 	return response
 }
 
-func api_request_header(url string, header_key string, header_value string) []byte{
+func api_request_header(url string, header_key string, header_value string) []byte {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -225,6 +223,7 @@ func get_point(point Point, distance float64, angle float64) Point {
 	lat := point.lat + math.Cos(radians)*distance_lat
 	lng := point.lng + math.Sin(radians)*distance_lng
 	url := NINTERSECT_URL + strconv.FormatFloat(lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(lng, 'f', 6, 64) + GEOKEY
+	fmt.Println(url)
 	response := api_request(url)
 	var resp_body NearIntersectResp
 	json.Unmarshal(response, &resp_body)
@@ -233,12 +232,12 @@ func get_point(point Point, distance float64, angle float64) Point {
 	if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
 		resLat = s1
 	} else {
-		panic(err)
+		// Do nothing
 	}
 	if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
 		resLng = s2
 	} else {
-		panic(err)
+		// Do nothing
 	}
 
 	return NewPoint(resLat, resLng)
@@ -462,23 +461,23 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
 }
 
-func polylineToPath(polyline strava.Polyline) []float64{
-	 coords :=  polyline.Decode()
-	 path := []float64{}
-	 for _, coord := range coords {
-	 	path = append(path, coord[0])
-	 	path = append(path, coord[1])
-	 }
+func polylineToPath(polyline strava.Polyline) []float64 {
+	coords := polyline.Decode()
+	path := []float64{}
+	for _, coord := range coords {
+		path = append(path, coord[0])
+		path = append(path, coord[1])
+	}
 
-	 return path
+	return path
 }
 
-func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64)  (*StravaResponse) {
+func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64) *StravaResponse {
 
 	//check to see if radius is a proper number
 	radius, err := strconv.ParseFloat(radius_string, 64)
 	if err != nil {
-		return newStravaResponse(nil,nil,nil,"Not a valid radius")
+		return newStravaResponse(nil, nil, nil, "Not a valid radius")
 	}
 
 	//form url from address
@@ -489,17 +488,16 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
-		return newStravaResponse(nil,nil,nil, "Address doesn't exist")
+		return newStravaResponse(nil, nil, nil, "Address doesn't exist")
 	}
 
 	//get the latitude and longitude
 	lat, lng := extract_coordinates(response)
 	origin := NewPoint(lat, lng)
 
-	//get the points for teh request 
-	top_right := get_point(origin, radius / 2, 45)
-	bottom_left := get_point(origin, radius / 2, 45+180)
-
+	//get the points for teh request
+	top_right := get_point(origin, radius/2, 45)
+	bottom_left := get_point(origin, radius/2, 45+180)
 
 	var accessToken string
 	flag.StringVar(&accessToken, "token", `dec58ffdc4840443ebdbbe706ad2b033d0ae4b9b`, "Access Token")
@@ -515,25 +513,25 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 
 	distance, err := strconv.ParseFloat(distance_string, 64)
 	if err != nil {
-		return newStravaResponse(nil,nil,nil, "Not a valid radius")
+		return newStravaResponse(nil, nil, nil, "Not a valid radius")
 	}
 
 	best_distance_index := 0
 	best_distance_difference := math.Abs(distance - responses[0].Distance)
 
 	for i, resp := range responses {
-		if (math.Abs(distance - resp.Distance) < best_distance_difference) {
+		if math.Abs(distance-resp.Distance) < best_distance_difference {
 			best_distance_index = i
 			best_distance_difference = math.Abs(distance - resp.Distance)
 		}
 	}
 
-	start := responses[best_distance_index].StartLocation 
+	start := responses[best_distance_index].StartLocation
 	end := responses[best_distance_index].EndLocation
 	path := polylineToPath(responses[best_distance_index].Polyline)
 	fmt.Println(path)
 
-	return newStravaResponse(path, []float64{start[0], start[1]} , []float64{end[0], end[1]}, "Success")
+	return newStravaResponse(path, []float64{start[0], start[1]}, []float64{end[0], end[1]}, "Success")
 
 }
 
@@ -568,17 +566,17 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 // 	}
 
 // 	//ask for distance
-// 	fmt.Printf("Enter desired distance in miles\n")
+// 	// fmt.Printf("Enter desired distance in miles\n")
 
 // 	//read user input
-// 	var distance string
-// 	for scanner.Scan() {
-// 		distance = scanner.Text()
-// 		if strings.Contains(distance, "") {
-// 			break
-// 		}
-// 	}
-
+// 	// var distance string
+// 	// for scanner.Scan() {
+// 	// 	distance = scanner.Text()
+// 	// 	if strings.Contains(distance, "") {
+// 	// 		break
+// 	// 	}
+// 	// }
+// 	distance := "1"
 // 	execute_request(input, distance, square_route, 1.0)
 
 // }
