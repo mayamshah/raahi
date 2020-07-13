@@ -8,7 +8,7 @@ function createWayPoints(org) {
     var waypoints = []
     var i = 0
     for (i = 0; i < org.length; i = i + 2) {
-      waypoints.push({location: new google.maps.LatLng(org[i], org[i+1]), stopover: false})
+      waypoints.push({location: new google.maps.LatLng(org[i], org[i+1]), stopover: true})
     }
 
     return waypoints
@@ -35,7 +35,7 @@ render() {
           DirectionsService.route({
             origin: new google.maps.LatLng(this.props.org[0], this.props.org[1]),
             destination: new google.maps.LatLng(this.props.org[0], this.props.org[1]),
-            waypoints: createWayPoints(this.props.org),
+            waypoints: createWayPoints(this.props.org.slice(2)),
             travelMode: google.maps.TravelMode.WALKING,
           }, (result, status) => {
             if (status === google.maps.DirectionsStatus.OK) {
