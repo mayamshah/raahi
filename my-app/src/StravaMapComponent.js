@@ -7,14 +7,15 @@ function createWayPoints(org) {
 
     var waypoints = []
     var i = 0
-    for (i = 0; i < org.length; i = i + 2) {
+    for (i = 0; i < 23*2; i = i + 2) {
       waypoints.push({location: new google.maps.LatLng(org[i], org[i+1]), stopover: false})
     }
 
+    console.log(waypoints.length)
     return waypoints
 }
 
-class MyMapComponent extends React.Component {
+class StravaMapComponent extends React.Component {
   constructor(props){
     super(props)
   }
@@ -25,7 +26,9 @@ render() {
         loadingElement: <div style={{ height: `400px` }} />,
         containerElement: <div style={{ width: `100%` }} />,
         mapElement: <div style={{height: `600px`, width: `600px` }}  />,
-        org: this.props.org
+        path: this.props.path,
+        start: this.props.start,
+        end: this.props.end
       }),
       withScriptjs,
       withGoogleMap,
@@ -33,9 +36,9 @@ render() {
         componentDidMount() { 
           const DirectionsService = new google.maps.DirectionsService();
           DirectionsService.route({
-            origin: new google.maps.LatLng(this.props.org[0], this.props.org[1]),
-            destination: new google.maps.LatLng(this.props.org[0], this.props.org[1]),
-            waypoints: createWayPoints(this.props.org),
+            origin: new google.maps.LatLng(this.props.start[0], this.props.start[1]),
+            destination: new google.maps.LatLng(this.props.end[0], this.props.end[1]),
+            waypoints: createWayPoints(this.props.path),
             travelMode: google.maps.TravelMode.WALKING,
           }, (result, status) => {
             if (status === google.maps.DirectionsStatus.OK) {
@@ -62,4 +65,4 @@ return (
     )
   }
 }
-export default MyMapComponent
+export default StravaMapComponent

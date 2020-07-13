@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"github.com/strava/go.strava"
+	"flag"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -33,6 +35,13 @@ type Response struct {
 	Path         []float64
 	Distance     float64
 	PercentError float64
+	Error        string
+}
+
+type StravaResponse struct {
+	Path         []float64
+	Start        []float64
+	End          []float64
 	Error        string
 }
 
@@ -146,6 +155,30 @@ func api_request(url string) []byte {
 		panic(err)
 	}
 
+	return response
+}
+
+func api_request_header(url string, header_key string, header_value string) []byte{
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Add(header_key, header_value)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	response, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(resp.Status)
 	return response
 }
 
@@ -407,6 +440,15 @@ func newResponse(path []float64, distance float64, percent_error float64, err st
 	return this
 }
 
+func newStravaResponse(path []float64, start []float64, end []float64, err string) *StravaResponse {
+	this := new(StravaResponse)
+	this.Path = path
+	this.Start = start
+	this.End = end
+	this.Error = err
+	return this
+}
+
 func Execute(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
@@ -418,6 +460,94 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	path, distance, percent_error, err := execute_request(req.Address, req.Distance, square_route, 1.0)
 	json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
+}
+
+func polylineToPath(polyline strava.Polyline) []float64{
+	 coords :=  polyline.Decode()
+	 path := []float64{}
+	 for _, coord := range coords {
+	 	path = append(path, coord[0])
+	 	path = append(path, coord[1])
+	 }
+
+	 return path
+}
+
+func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64)  (*StravaResponse) {
+
+	//check to see if radius is a proper number
+	radius, err := strconv.ParseFloat(radius_string, 64)
+	if err != nil {
+		return newStravaResponse(nil,nil,nil,"Not a valid radius")
+	}
+
+	//form url from address
+	url := address_to_api_call(input)
+
+	//get response from google api server
+	response := api_request(url)
+
+	//check to see if address exists
+	if !check_responseGeocode(response) {
+		return newStravaResponse(nil,nil,nil, "Address doesn't exist")
+	}
+
+	//get the latitude and longitude
+	lat, lng := extract_coordinates(response)
+	origin := NewPoint(lat, lng)
+
+	//get the points for teh request 
+	top_right := get_point(origin, radius / 2, 45)
+	bottom_left := get_point(origin, radius / 2, 45+180)
+
+
+	var accessToken string
+	flag.StringVar(&accessToken, "token", `dec58ffdc4840443ebdbbe706ad2b033d0ae4b9b`, "Access Token")
+	flag.Parse()
+
+	client := strava.NewClient(accessToken)
+	SegmentCall := strava.NewSegmentsService(client).Explore(bottom_left.lat, bottom_left.lng, top_right.lat, top_right.lng)
+	SegmentCall.ActivityType("running")
+	SegmentCall.MinimumCategory(1)
+	SegmentCall.MaximumCategory(100)
+
+	responses, err := SegmentCall.Do()
+
+	distance, err := strconv.ParseFloat(distance_string, 64)
+	if err != nil {
+		return newStravaResponse(nil,nil,nil, "Not a valid radius")
+	}
+
+	best_distance_index := 0
+	best_distance_difference := math.Abs(distance - responses[0].Distance)
+
+	for i, resp := range responses {
+		if (math.Abs(distance - resp.Distance) < best_distance_difference) {
+			best_distance_index = i
+			best_distance_difference = math.Abs(distance - resp.Distance)
+		}
+	}
+
+	start := responses[best_distance_index].StartLocation 
+	end := responses[best_distance_index].EndLocation
+	path := polylineToPath(responses[best_distance_index].Polyline)
+	fmt.Println(path)
+
+	return newStravaResponse(path, []float64{start[0], start[1]} , []float64{end[0], end[1]}, "Success")
+
+}
+
+func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	var req Request
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0)
+	json.NewEncoder(w).Encode(StravaResponse)
 }
 
 // func main() {

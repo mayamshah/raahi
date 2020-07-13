@@ -1,2 +1,6 @@
 github.com/gorilla/mux v1.7.4 h1:VuZ8uybHlWmqV03+zRzdwKL4tUnIp1MAQtp1mIFE1bc=
 github.com/gorilla/mux v1.7.4/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
+github.com/strava/go.strava v0.0.0-20180612235916-99ebe972ba16 h1:EByiQtVco26j69tJGwr2EaeM+6AFJvz9hR6VwEWeUFQ=
+github.com/strava/go.strava v0.0.0-20180612235916-99ebe972ba16/go.mod h1:M6HqlQU01mCWZxTUI0n9XMxUOsJQpCwJbyq/w1j/Lkg=
+github.com/twpayne/go-polyline v1.0.0 h1:EA8HPg0MNS62R5D2E8B6zyz2TMkmkXVlQaVBVgY3F5A=
+github.com/twpayne/go-polyline v1.0.0/go.mod h1:ICh24bcLYBX8CknfvNPKqoTbe+eg+MX1NPyJmSBo7pU=
