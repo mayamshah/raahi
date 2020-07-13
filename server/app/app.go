@@ -9,10 +9,11 @@ import (
 	"net/http"
 
 	// "os"
-	"flag"
 	"sort"
 	"strconv"
 	"strings"
+	"github.com/strava/go.strava"
+	"flag"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
