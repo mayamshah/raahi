@@ -224,24 +224,24 @@ func get_point(point Point, distance float64, angle float64) Point {
 	distance_lng := 1 / (one_degree_lng / distance)
 	lat := point.lat + math.Cos(radians)*distance_lat
 	lng := point.lng + math.Sin(radians)*distance_lng
-	// url := NINTERSECT_URL + strconv.FormatFloat(lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(lng, 'f', 6, 64) + GEOKEY
-	// response := api_request(url)
-	// var resp_body NearIntersectResp
-	// json.Unmarshal(response, &resp_body)
-	// var resLat float64
-	// var resLng float64
-	// if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
-	// 	resLat = s1
-	// } else {
-	// 	panic(err)
-	// }
-	// if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
-	// 	resLng = s2
-	// } else {
-	// 	panic(err)
-	// }
+	url := NINTERSECT_URL + strconv.FormatFloat(lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(lng, 'f', 6, 64) + GEOKEY
+	response := api_request(url)
+	var resp_body NearIntersectResp
+	json.Unmarshal(response, &resp_body)
+	var resLat float64
+	var resLng float64
+	if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
+		resLat = s1
+	} else {
+		panic(err)
+	}
+	if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
+		resLng = s2
+	} else {
+		panic(err)
+	}
 
-	return NewPoint(lat, lng)
+	return NewPoint(resLat, resLng)
 }
 
 func points_to_angle(p1 Point, p2 Point) float64 {
