@@ -480,7 +480,7 @@ func polylineToPath(polyline strava.Polyline) []float64 {
 		path = append(path, coord[0])
 		path = append(path, coord[1])
 	}
-
+	//potentially reduce amount of waypoints here rather than after having called this function
 	return path
 }
 
@@ -539,10 +539,23 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	}
 
 	start := responses[best_distance_index].StartLocation
+	startCoords := []float64{start[0], start[1]}
 	end := responses[best_distance_index].EndLocation
+	endCoords := []float64{end[0], end[1]}
 	path := polylineToPath(responses[best_distance_index].Polyline)
+	lessPath := make([]float64, 23)
+	incr := len(path) / 23
+	for i := 0; i < 23; i++ {
+		lessPath[i] = path[i * incr]
+	}
 	fmt.Println(path)
-
+	fmt.Println("check")
+	oCoord := append(startCoords, endCoords...)
+	resPath := append(oCoord, lessPath...)
+	fmt.Println(resPath)
+	//ideally we'd return resPath here and then just pass org = {path} into MyMapComponent but the strava stuff is super buggy so didn't change what you were originally returning which may make it easier for you to figure it out
+	//also we can just return response[best_distance_index].Distance for the display distance but again didn't wanna mess with it too much for ease of debugging
+	//Was only successfully able to compile it once using MyMapComponent but the coordinates returned were in Singapore
 	return newStravaResponse(path, []float64{start[0], start[1]}, []float64{end[0], end[1]}, "Success")
 
 }
