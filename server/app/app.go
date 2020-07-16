@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"github.com/strava/go.strava"
-	"flag"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -24,6 +23,11 @@ const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
 const GEOKEY = "&username=gulab"
+
+
+type Tool struct {
+	Token string
+}
 
 type Request struct {
 	Address  string `json:"address"`
@@ -118,6 +122,12 @@ type DistAndPath struct {
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
+
+func NewTool(token string) *Tool {
+	this := new(Tool)
+	this.Token = token
+	return this
+}
 
 //creates a new point
 func NewPoint(lat float64, lng float64) Point {
@@ -248,7 +258,7 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 }
 
 // given an origin, distance and angle, finds the corresponding point
-func get_point(point Point, distance float64, angle float64) (Point, string){
+func get_point(point Point, distance float64, angle float64, runNearestIntersection bool) (Point, string){
 	//angle is degrees
 	radians := angle * math.Pi / 180
 	distance_lat := 1 / (69 / distance)
@@ -258,8 +268,11 @@ func get_point(point Point, distance float64, angle float64) (Point, string){
 	lat := point.lat + math.Cos(radians)*distance_lat
 	lng := point.lng + math.Sin(radians)*distance_lng
 	
+	if (!runNearestIntersection) {
+		return NewPoint(lat, lng), ``
+	}
 
-	return nearestIntersectionPoint(NewPoint(lat, lng))
+    return nearestIntersectionPoint(NewPoint(lat, lng))
 }
 
 func points_to_angle(p1 Point, p2 Point) float64 {
@@ -308,7 +321,7 @@ func create_routes(point Point, distance float64, num float64, make_route make_r
 //creates a straight line route
 var straight_line make_route = func(point Point, distance float64, offset float64) []Point {
 
-	p0, err := get_point(point, distance/2, offset)
+	p0, err := get_point(point, distance/2, offset,true)
 
 	if (err != ``) {
 		return []Point{}
@@ -322,9 +335,9 @@ var square_route make_route = func(point Point, distance float64, offset float64
 
 	side_length := (distance / 4)
 
-	p0, err_0 := get_point(point, side_length, offset+135.0)
-	p1, err_1 := get_point(point, distance/4*math.Sqrt(2), offset+90.0)
-	p2, err_2 := get_point(point, side_length, offset+45.0)
+	p0, err_0 := get_point(point, side_length, offset+135.0,true)
+	p1, err_1 := get_point(point, distance/4*math.Sqrt(2), offset+90.0,true)
+	p2, err_2 := get_point(point, side_length, offset+45.0,true)
 
 	if (err_0 != `` || err_1 != `` || err_2 != ``) {
 		return []Point{}
@@ -336,8 +349,8 @@ var square_route make_route = func(point Point, distance float64, offset float64
 var equilateral_triangle make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := (distance / 3.0)
 
-	p0, err_0 := get_point(point, side_length, offset+60.0)
-	p1, err_1 := get_point(point, side_length, offset+120.0)
+	p0, err_0 := get_point(point, side_length, offset+60.0,true)
+	p1, err_1 := get_point(point, side_length, offset+120.0,true)
 
 	if (err_0 != `` || err_1 != ``) {
 		return []Point{}
@@ -350,8 +363,8 @@ var equilateral_triangle make_route = func(point Point, distance float64, offset
 var right_triangle make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := distance / (2.0 + math.Sqrt(2.0))
 
-	p0, err_0 := get_point(point, side_length, offset)
-	p1, err_1 := get_point(point, side_length, offset+90.0)
+	p0, err_0 := get_point(point, side_length, offset,true)
+	p1, err_1 := get_point(point, side_length, offset+90.0,true)
 
 	if (err_0 != `` || err_1 != ``) {
 		return []Point{}
@@ -363,13 +376,13 @@ var right_triangle make_route = func(point Point, distance float64, offset float
 //isosceles
 var right_triangleOther make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := distance / (2.0 + math.Sqrt(2.0))
-	p0, err_0 := get_point(point, side_length, offset+90.0)
+	p0, err_0 := get_point(point, side_length, offset+90.0,true)
 	
 	if (err_0 != ``) {
 		return []Point{}
 	}
 
-	p1, err_1 := get_point(p0, side_length, offset)
+	p1, err_1 := get_point(p0, side_length, offset,true)
 
 	if (err_1 != ``) {
 		return []Point{}
@@ -562,7 +575,7 @@ func polylineToPath(polyline strava.Polyline) []float64 {
 	return path
 }
 
-func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64) *StravaResponse {
+func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *StravaResponse {
 
 	//check to see if radius is a proper number
 	radius, err := strconv.ParseFloat(radius_string, 64)
@@ -589,20 +602,14 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	origin := NewPoint(lat, lng)
 
 	//get the points for teh request
-	top_right, error := get_point(origin, radius/2, 45)
+	top_right, error := get_point(origin, radius/2, 45, false)
 	if (error != ``) {
 		return newStravaResponse(nil, nil, nil, error)
 	}
-	bottom_left, error := get_point(origin, radius/2, 45+180)
+	bottom_left, error := get_point(origin, radius/2, 45+180, false)
 	if (error != ``) {
 		return newStravaResponse(nil, nil, nil, error)
 	}
-
-
-
-	var accessToken string
-	flag.StringVar(&accessToken, "token", `dec58ffdc4840443ebdbbe706ad2b033d0ae4b9b`, "Access Token")
-	flag.Parse()
 
 	client := strava.NewClient(accessToken)
 	SegmentCall := strava.NewSegmentsService(client).Explore(bottom_left.lat, bottom_left.lng, top_right.lat, top_right.lng)
@@ -611,6 +618,12 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	SegmentCall.MaximumCategory(100)
 
 	responses, err := SegmentCall.Do()
+	if err != nil {
+		return newStravaResponse(nil, nil, nil, fmt.Sprintf("%s", err))
+	}
+	if len(responses) <= 0 {
+		return newStravaResponse(nil, nil, nil, "No routes found")
+	}
 
 	distance, err := strconv.ParseFloat(distance_string, 64)
 	if err != nil {
@@ -632,11 +645,11 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	path := polylineToPath(responses[best_distance_index].Polyline)
 	fmt.Println(path)
 
-	return newStravaResponse(path, []float64{start[0], start[1]}, []float64{end[0], end[1]}, "Success")
+	return newStravaResponse(path, []float64{start[0], start[1]}, []float64{end[0], end[1]}, ``)
 
 }
 
-func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
+func (tool *Tool) ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -645,7 +658,7 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	var req Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0)
+	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, tool.Token)
 	json.NewEncoder(w).Encode(StravaResponse)
 }
 
