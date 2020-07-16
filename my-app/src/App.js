@@ -7,6 +7,11 @@ import axios from "axios";
 import Map from "./Map.js"
 import MyMapComponent from "./MyMapComponent.js"
 import StravaMapComponent from "./StravaMapComponent.js"
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 let endpoint = "http://localhost:8080/api/execute";
 
@@ -34,6 +39,10 @@ function Display() {
   const [resDist, setResDist] = useState([0.0, 0.0, 0.0])
   const [currentAddress, setCurrentAddress] = useState("");
   const [currentMiles, setCurrentMiles] = useState("0");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+  const [show, setShow] = useState(false);
 
 
   function getResult() {
@@ -46,19 +55,49 @@ function Display() {
       .then(res => {
         console.log(res);
         console.log(res.data);
-        setResult(res.data.Path)
-        setResDist(res.data.Distance)
+        if (res.data.Error == '') {
+          console.log("No error")
+          setResult(res.data.Path)
+          setResDist(res.data.Distance)
+          setCurrentIndex(0)
+          setShow(true)
+        } else {
+          setError(res.data.Error)
+          setOpen(true)
+        }
+        
         console.log(res.data.Path)
       })
+
+
   }
 
   function handleAddress(e) {
     setCurrentAddress(e.target.value)
+    setShow(false)
   }
 
   function handleMiles(e) {
     setCurrentMiles(e.target.value)
+    setShow(false)
   }
+
+  function nextResult() {
+    if (currentIndex < 2) {
+      setCurrentIndex(currentIndex+1)
+    }
+  }
+
+  function prevResult() {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1)
+    }
+  }
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
 
   return (
     <div>
@@ -76,20 +115,37 @@ function Display() {
         </form>
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
-        </Button>   
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          {resDist[0].toString() + " mile route below"}
+        </Button>
+        <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
+        NextResult
+        </Button>
+        <Button className={classes.button} onClick={() => prevResult()} variant="contained" color="primary" >
+        PreviousResult
+        </Button>
+        {show &&<Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          {resDist[currentIndex].toString() + " mile route below"}
         </Typography>
-        <MyMapComponent org = {result[0]} />
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          {resDist[1].toString() + " mile route below"}
-        </Typography>
-        <MyMapComponent org = {result[1]} />
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          {resDist[2].toString() + " mile route below"}
-        </Typography>
-        <MyMapComponent org = {result[2]} />
-               
+        }
+        {show && <MyMapComponent org = {result[currentIndex]} />}
+        <Dialog
+          open={open}
+          onClose={handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"An error occured"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              {error}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose} color="primary">
+              Close
+            </Button>
+          </DialogActions>
+      </Dialog>
+
     </div>
     );
 }

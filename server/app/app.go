@@ -143,20 +143,21 @@ func address_to_api_call(address string) string {
 }
 
 //makes a GET request at the given URL and checks for error
-func api_request(url string) []byte {
+func api_request(url string) ([]byte, string) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return nil, `Get request failed`
 	}
 	response, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return nil, `IOutil Failed`
 	}
 
-	return response
+	return response, ``
 }
 
+//makes and API request with a header
 func api_request_header(url string, header_key string, header_value string) []byte {
 	client := &http.Client{}
 
@@ -214,33 +215,51 @@ func extract_coordinates(response []byte) (float64, float64) {
 	return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
 
+func nearestIntersectionPoint(point Point) (Point, string) {
+
+	url := NINTERSECT_URL + strconv.FormatFloat(point.lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(point.lng, 'f', 6, 64) + GEOKEY
+
+	response, err := api_request(url)
+
+	if (err != ``) {
+		return *new(Point), err
+	}
+
+	var resp_body NearIntersectResp
+	json.Unmarshal(response, &resp_body)
+	var resLat float64
+	var resLng float64
+
+	if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
+		resLat = s1
+	} else {
+		return *new(Point), `No nearest intersection point found`
+	}
+
+	if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
+		resLng = s2
+	} else {
+		return *new(Point), `No nearest intersection point found`
+	}
+
+	return NewPoint(resLat, resLng), ``
+
+
+}
+
 // given an origin, distance and angle, finds the corresponding point
-func get_point(point Point, distance float64, angle float64) Point {
+func get_point(point Point, distance float64, angle float64) (Point, string){
 	//angle is degrees
 	radians := angle * math.Pi / 180
 	distance_lat := 1 / (69 / distance)
 	one_degree_lng := math.Cos(point.lat*math.Pi/180) * EQUATOR_LENGTH
 	distance_lng := 1 / (one_degree_lng / distance)
+
 	lat := point.lat + math.Cos(radians)*distance_lat
 	lng := point.lng + math.Sin(radians)*distance_lng
-	url := NINTERSECT_URL + strconv.FormatFloat(lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(lng, 'f', 6, 64) + GEOKEY
-	response := api_request(url)
-	var resp_body NearIntersectResp
-	json.Unmarshal(response, &resp_body)
-	var resLat float64
-	var resLng float64
-	if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
-		resLat = s1
-	} else {
-		// Do nothing
-	}
-	if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
-		resLng = s2
-	} else {
-		// Do nothing
-	}
+	
 
-	return NewPoint(resLat, resLng)
+	return nearestIntersectionPoint(NewPoint(lat, lng))
 }
 
 func points_to_angle(p1 Point, p2 Point) float64 {
@@ -250,9 +269,14 @@ func points_to_angle(p1 Point, p2 Point) float64 {
 	return degrees
 
 }
+
 func get_offset(point Point) float64 {
 	url := NEAREST_RODE_URL + strconv.FormatFloat(point.lat, 'f', 6, 64) + "," + strconv.FormatFloat(point.lng, 'f', 6, 64) + KEY
-	response := api_request(url)
+	response, err := api_request(url)
+	if (err != ``) {
+		// this is okay because we can still try to make a request if offset doesnt exist
+		return 0.0
+	}
 	var resp_body NearestResp
 	json.Unmarshal(response, &resp_body)
 	new_point := NewPoint(resp_body.SnappedPoints[0].Location.Latitude, resp_body.SnappedPoints[0].Location.Longitude)
@@ -268,17 +292,29 @@ func create_routes(point Point, distance float64, num float64, make_route make_r
 	offset := get_offset(point)
 	var routes [][]Point
 
-	for offset < 360 {
+	for i := 0.0; i < num; i = i + 1.0 {
 		route := make_route(point, distance, offset)
-		routes = append(routes, route)
+		if (len(route) > 0) {
+			routes = append(routes, route)
+		}
 		offset += angle_increase
+		if (offset > 360) {
+			offset = offset - 360
+		}
 	}
 	return routes
 }
 
 //creates a straight line route
 var straight_line make_route = func(point Point, distance float64, offset float64) []Point {
-	return []Point{get_point(point, distance/2, offset)}
+
+	p0, err := get_point(point, distance/2, offset)
+
+	if (err != ``) {
+		return []Point{}
+	}
+
+	return []Point{p0}
 }
 
 //creates a square route
@@ -286,9 +322,13 @@ var square_route make_route = func(point Point, distance float64, offset float64
 
 	side_length := (distance / 4)
 
-	p0 := get_point(point, side_length, offset+135.0)
-	p1 := get_point(point, distance/4*math.Sqrt(2), offset+90.0)
-	p2 := get_point(point, side_length, offset+45.0)
+	p0, err_0 := get_point(point, side_length, offset+135.0)
+	p1, err_1 := get_point(point, distance/4*math.Sqrt(2), offset+90.0)
+	p2, err_2 := get_point(point, side_length, offset+45.0)
+
+	if (err_0 != `` || err_1 != `` || err_2 != ``) {
+		return []Point{}
+	}
 
 	return []Point{p0, p1, p2}
 }
@@ -296,8 +336,12 @@ var square_route make_route = func(point Point, distance float64, offset float64
 var equilateral_triangle make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := (distance / 3.0)
 
-	p0 := get_point(point, side_length, offset+60.0)
-	p1 := get_point(point, side_length, offset+120.0)
+	p0, err_0 := get_point(point, side_length, offset+60.0)
+	p1, err_1 := get_point(point, side_length, offset+120.0)
+
+	if (err_0 != `` || err_1 != ``) {
+		return []Point{}
+	}
 
 	return []Point{p0, p1}
 }
@@ -305,8 +349,13 @@ var equilateral_triangle make_route = func(point Point, distance float64, offset
 //isosceles
 var right_triangle make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := distance / (2.0 + math.Sqrt(2.0))
-	p0 := get_point(point, side_length, offset)
-	p1 := get_point(point, side_length, offset+90.0)
+
+	p0, err_0 := get_point(point, side_length, offset)
+	p1, err_1 := get_point(point, side_length, offset+90.0)
+
+	if (err_0 != `` || err_1 != ``) {
+		return []Point{}
+	}
 
 	return []Point{p0, p1}
 }
@@ -314,29 +363,42 @@ var right_triangle make_route = func(point Point, distance float64, offset float
 //isosceles
 var right_triangleOther make_route = func(point Point, distance float64, offset float64) []Point {
 	side_length := distance / (2.0 + math.Sqrt(2.0))
-	p0 := get_point(point, side_length, offset+90.0)
-	p1 := get_point(p0, side_length, offset)
+	p0, err_0 := get_point(point, side_length, offset+90.0)
+	
+	if (err_0 != ``) {
+		return []Point{}
+	}
+
+	p1, err_1 := get_point(p0, side_length, offset)
+
+	if (err_1 != ``) {
+		return []Point{}
+	}
 
 	return []Point{p0, p1}
 }
 
 //finds distance between 2 given cooridnates
-func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
+func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, string) {
 	orgLat := strconv.FormatFloat(oLat, 'f', 6, 64)
 	orgLng := strconv.FormatFloat(oLng, 'f', 6, 64)
 	dstLat := strconv.FormatFloat(dLat, 'f', 6, 64)
 	dstLng := strconv.FormatFloat(dLng, 'f', 6, 64)
 	urlCall := DISTANCE_URL + "origins=" + orgLat + "," + orgLng + "&destinations=" + dstLat + "," + dstLng + MODE + KEY
-	response := api_request(urlCall)
+	
+	response, err := api_request(urlCall)
+	if (err != ``) {
+		return 0, err
+	}
 
 	if !check_responseDistance(response) {
-		fmt.Println("Status not okay")
+		return 0, "Response Distance Status not okay"
 	}
 
 	var resp_body DistanceResp
 	json.Unmarshal(response, &resp_body)
 
-	return resp_body.Rows[0].Elements[0].Distance.Value
+	return resp_body.Rows[0].Elements[0].Distance.Value, ``
 
 }
 
@@ -344,31 +406,44 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) int {
 func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
 	var allDists []DistAndPath
 	for _, v := range pathSlice {
-		someDist := 0
+
+		totalDist := 0
 		prevLat := org.lat
 		prevLng := org.lng
+		overall_error := ``
 		for _, x := range v {
 			curLat := x.lat
 			curLng := x.lng
-			someDist += distance(prevLat, prevLng, curLat, curLng)
+			some, err  := distance(prevLat, prevLng, curLat, curLng)
+			if (err == ``) {
+				totalDist += some 
+			} else {
+				overall_error = err
+				break
+			}
 			prevLat = curLat
 			prevLng = curLng
 		}
-		someDist += distance(prevLat, prevLng, org.lat, org.lng)
-		// convert output in meters to miles
-		const mtoMi float64 = 0.00062137
-		//only includes paths which are at least the desired length
-		if float64(someDist)*mtoMi > desired {
-			// if true {
-			temp := new(DistAndPath)
-			temp.distance = float64(someDist) * mtoMi
-			temp.path = v
-			temp.desired = desired
-			allDists = append(allDists, *temp)
+
+		some, err := distance(prevLat, prevLng, org.lat, org.lng)
+		totalDist += some
+
+		if (overall_error == `` && err == ``) {
+			// convert output in meters to miles
+			const mtoMi float64 = 0.00062137
+			//only includes paths which are at least the desired length
+			if float64(totalDist)*mtoMi > desired {
+				// if true {
+				temp := new(DistAndPath)
+				temp.distance = float64(totalDist) * mtoMi
+				temp.path = v
+				temp.desired = desired
+				allDists = append(allDists, *temp)
+			}
 		}
 
 	}
-	//fmt.Println(allDists)
+
 	return allDists
 }
 
@@ -386,7 +461,11 @@ func execute_request(input string, distance_string string, route_function make_r
 	url := address_to_api_call(input)
 
 	//get response from google api server
-	response := api_request(url)
+	response, error := api_request(url)
+
+	if (error != ``) {
+		return nil, nil, 0, error
+	}
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
@@ -417,10 +496,9 @@ func execute_request(input string, distance_string string, route_function make_r
 	percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
 	//Outputs best path with distance and percent error
 
+
+	//@Agam what does this do?
 	resPaths := make([][]float64, len(pathDetails))
-	// for i := range resPaths {
-    // 	resPaths[i] = make([]float64, (len(pathDetails.path) + 1)* 2)
-	// }
 	var resDists []float64
 	fmt.Println(len(pathDetails))
 	var i int
@@ -496,7 +574,10 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	url := address_to_api_call(input)
 
 	//get response from google api server
-	response := api_request(url)
+	response, error := api_request(url)
+	if (error != ``) {
+		return newStravaResponse(nil, nil, nil, error)
+	}
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
@@ -508,8 +589,16 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	origin := NewPoint(lat, lng)
 
 	//get the points for teh request
-	top_right := get_point(origin, radius/2, 45)
-	bottom_left := get_point(origin, radius/2, 45+180)
+	top_right, error := get_point(origin, radius/2, 45)
+	if (error != ``) {
+		return newStravaResponse(nil, nil, nil, error)
+	}
+	bottom_left, error := get_point(origin, radius/2, 45+180)
+	if (error != ``) {
+		return newStravaResponse(nil, nil, nil, error)
+	}
+
+
 
 	var accessToken string
 	flag.StringVar(&accessToken, "token", `dec58ffdc4840443ebdbbe706ad2b033d0ae4b9b`, "Access Token")
