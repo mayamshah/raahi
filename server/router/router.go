@@ -6,13 +6,11 @@ import (
 )
 
 // Router is exported and used in main.go
-func Router(token string) *mux.Router {
+func Router() *mux.Router {
 
 	router := mux.NewRouter()
-
-	tool := app.NewTool(token)
-
 	router.HandleFunc("/api/execute", app.Execute).Methods("POST", "OPTIONS")
-	router.HandleFunc("/api/executestrava", tool.ExecuteStrava).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/executestrava", app.ExecuteStrava).Methods("POST", "OPTIONS")
+
 	return router
 }

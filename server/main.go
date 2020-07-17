@@ -5,19 +5,25 @@ import (
     "log"
     "net/http"
     router "m20project.com/m/router"
-    "flag"
-    "errors"
 )
 
 func main() {
-    var accessToken string
-	flag.StringVar(&accessToken, "token", ``, "Access Token")
-	flag.Parse()
-	if (accessToken == ``) {
-		panic(errors.New("no access token set"))
+
+	//require python server to be working 
+	resp, err := http.Get("http://localhost:5000/token")
+	if (err != nil) {
+		fmt.Println("Please start the python strava token server")
+		panic(err)
 	}
 
-	r := router.Router(accessToken)
+	if (resp.StatusCode != 200) {
+		fmt.Println("Make sure to visit localhost:5000/authorize before starting the backend server")
+		return
+	}
+
+
+	r := router.Router()
     fmt.Println("Starting server on the port 8080...")
     log.Fatal(http.ListenAndServe(":8080", r))
 }
+

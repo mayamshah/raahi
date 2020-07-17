@@ -24,14 +24,13 @@ const EQUATOR_LENGTH = 69.172
 const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
 const GEOKEY = "&username=gulab"
 
-
-type Tool struct {
-	Token string
-}
-
 type Request struct {
 	Address  string `json:"address"`
 	Distance string `json:"distance"`
+}
+
+type TokenResposne struct {
+	AccessToken string `json:"accessToken"`
 }
 
 type Response struct {
@@ -123,12 +122,6 @@ type DistAndPath struct {
 
 type make_route func(point Point, distance float64, offset float64) []Point
 
-func NewTool(token string) *Tool {
-	this := new(Tool)
-	this.Token = token
-	return this
-}
-
 //creates a new point
 func NewPoint(lat float64, lng float64) Point {
 	this := new(Point)
@@ -165,31 +158,6 @@ func api_request(url string) ([]byte, string) {
 	}
 
 	return response, ``
-}
-
-//makes and API request with a header
-func api_request_header(url string, header_key string, header_value string) []byte {
-	client := &http.Client{}
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	req.Header.Add(header_key, header_value)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	response, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(resp.Status)
-	return response
 }
 
 //Checks a GeoCode Response body for error
@@ -649,7 +617,7 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 
 }
 
-func (tool *Tool) ExecuteStrava(w http.ResponseWriter, r *http.Request) {
+func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -658,7 +626,19 @@ func (tool *Tool) ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	var req Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, tool.Token)
+
+	// get token from python client 
+	resp, err := api_request("http://localhost:5000/token")
+
+	if (err != ``) {
+		json.NewEncoder(w).Encode(newStravaResponse(nil, nil, nil, err))
+		return
+	}
+
+	var resp_body TokenResposne
+	json.Unmarshal(resp, &resp_body)
+
+	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, resp_body.AccessToken)
 	json.NewEncoder(w).Encode(StravaResponse)
 }
 
