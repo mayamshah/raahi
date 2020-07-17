@@ -117,8 +117,19 @@ type DistAndPath struct {
 	desired  float64
 }
 
+type Pt struct {
+	Lat 		float64		`json:"lat"`
+	Lng 		float64		`json:"lng"`
+}
+
+type Steps struct {
+	Maneuver	string 		`json:"maneuver"`
+	LocStep		Pt			`json:"start_location"`
+}
+
 type Legs struct {
 	Distance 	ValText		`json:"distance"`
+	Steps 		[]Steps 	`json:"steps"`
 }
 
 type DirRoutes struct {
@@ -427,6 +438,12 @@ func distanceHelp(dirURL string) (float64, string) {
 	var resp_body DirResp
 	json.Unmarshal(response, &resp_body)
 	if (resp_body.Status == "OK") {
+		fmt.Println("------Directions for route below------")
+		for _, v := range resp_body.Rt[0].Legs[0].Steps {
+			fmt.Println("Step")
+			fmt.Println(v.Maneuver)
+			fmt.Println(v.LocStep)
+		}
 		return float64(resp_body.Rt[0].Legs[0].Distance.Value), ""
 	}
 	fmt.Println("Status not okay")
