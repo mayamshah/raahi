@@ -7,11 +7,10 @@ function createWayPoints(org) {
 
     var waypoints = []
     var i = 0
-    for (i = 0; i < 23*2; i = i + 2) {
+    for (i = 0; i < 23*2 && i < org.length; i = i + 2) {
       waypoints.push({location: new google.maps.LatLng(org[i], org[i+1]), stopover: false})
     }
 
-    console.log(waypoints.length)
     return waypoints
 }
 
