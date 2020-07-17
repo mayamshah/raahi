@@ -68,15 +68,15 @@ type GeocodeResp struct {
 	Status  string           `json:"status"`
 }
 
-type valText struct {
+type ValText struct {
 	Value int    `json:"value"`
 	Text  string `json:"text"`
 }
 
 type DistanceElems struct {
 	Status   string  `json:"status"`
-	Duration valText `json:"duration"`
-	Distance valText `json:"distance"`
+	Duration ValText `json:"duration"`
+	Distance ValText `json:"distance"`
 }
 
 type DistanceRows struct {
@@ -118,6 +118,22 @@ type DistAndPath struct {
 	path     []Point
 	distance float64
 	desired  float64
+}
+
+type Legs struct {
+	Distance 	ValText		`json:"distance"`
+}
+
+type DirRoutes struct {
+	Bounds		interface{}	`json:"bounds"`
+	Copyright 	string		`json:"copyrights"`
+	Legs 		[]Legs		`json:"legs"`
+}
+
+type DirResp struct {
+	Geowpts 	interface{} `json:"geocoded_waypoints"`
+	Rt 			[]DirRoutes `json:"routes"`
+	Status		string 		`json:"status"`
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -383,6 +399,52 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, stri
 
 }
 
+func distanceHelp(dirURL string) (float64, string) {
+	response, err := api_request(dirURL)
+	if (err != ``) {
+		return 0.0, err
+	}
+
+	var resp_body DirResp
+	json.Unmarshal(response, &resp_body)
+	if (resp_body.Status == "OK") {
+		return float64(resp_body.Rt[0].Legs[0].Distance.Value), ""
+	}
+	fmt.Println("Status not okay")
+	return 0.0, resp_body.Status
+}
+
+func get_distance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
+	var allDists []DistAndPath
+	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
+	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
+	for _, v := range pathSlice {
+		tempUrl := "https://maps.googleapis.com/maps/api/directions/json?origin=" + oLat + "," + oLng + "&destination=" + oLat + "," + oLng + MODE + "&waypoints="
+		for _, x := range v {
+			cLat := strconv.FormatFloat(x.lat, 'f', 6, 64)
+			cLng := strconv.FormatFloat(x.lng, 'f', 6, 64)
+			tempUrl = tempUrl + "via:" + cLat + "," + cLng + "|"
+		}
+		tempUrl = strings.TrimSuffix(tempUrl, "|")
+		url := tempUrl + KEY
+		dist, err := distanceHelp(url)
+		if (err == ``) {
+			// convert output in meters to miles
+			const mtoMi float64 = 0.00062137
+			distMi := dist * mtoMi
+			//only includes paths which are at least the desired length
+			if distMi > desired {
+				temp := new(DistAndPath)
+				temp.distance = distMi
+				temp.path = v
+				temp.desired = desired
+				allDists = append(allDists, *temp)
+			}
+		}
+	}
+	return allDists
+}
+
 //given paths, origin, and desired distance, returns slice of all distance lengths and paths
 func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
 	var allDists []DistAndPath
@@ -462,7 +524,8 @@ func execute_request(input string, distance_string string, route_function make_r
 	routes := create_routes(origin, distance*(error_fix), 8.0, route_function)
 	//desired distance hard coded as 1 mile
 	desired := 1
-	pathDetails := getDistance(routes, origin, float64(desired))
+	pathDetails := get_distance(routes, origin, float64(desired))
+	// get_distance(routes, origin, float64(desired))
 
 	//checks to make sure there are paths found
 	if len(pathDetails) == 0 {
@@ -486,7 +549,7 @@ func execute_request(input string, distance_string string, route_function make_r
 	for _, elem := range pathDetails {
 		fmt.Println(elem)
 		resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
-		fmt.Println(resPaths)
+		// fmt.Println(resPaths)
 		for _, pt := range pathDetails[i].path {
 			curLat := pt.lat
 			curLng := pt.lng
