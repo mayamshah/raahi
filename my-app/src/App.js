@@ -4,7 +4,6 @@ import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from "axios";
-import Map from "./Map.js"
 import MyMapComponent from "./MyMapComponent.js"
 import StravaMapComponent from "./StravaMapComponent.js"
 import Dialog from '@material-ui/core/Dialog';
