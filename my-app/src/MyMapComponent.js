@@ -9,6 +9,8 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import Paper from '@material-ui/core/Paper';
+import CssBaseline from '@material-ui/core/CssBaseline';
+
 
 
 function createWayPoints(org) {
@@ -22,13 +24,6 @@ function createWayPoints(org) {
     return waypoints
 }
 
-function stripHtml(html)
-{
-   var tmp = document.createElement("DIV");
-   tmp.innerHTML = html;
-   return tmp.textContent || tmp.innerText || "";
-}
-
 class MyMapComponent extends React.Component {
   constructor(props){
     super(props)
@@ -39,9 +34,9 @@ render() {
     const DirectionsComponent = compose(
       withProps({
         googleMapURL: "https://maps.googleapis.com/maps/api/js?key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk",
-        loadingElement: <div style={{ height: `400px` }} />,
-        containerElement: <div style={{ width: `100%` }} />,
-        mapElement: <div style={{height: `600px`, width: `600px` }}  />,
+        loadingElement: <div style={{ height: `100%` }} />,
+        containerElement: <div style={{ height: `100%`}} />,
+        mapElement: <div style={{ height: `500px`, width: `100%`}}  />,
         org: this.props.org
       }),
       withScriptjs,
@@ -68,28 +63,30 @@ render() {
         }
       })
     )(props =>
-      <div>
+    
+     <React.Fragment>
+      <CssBaseline />
+      {props.directions && 
+        <div>
         <GoogleMap
           defaultZoom={3}
         >
-          {props.directions && <DirectionsRenderer directions={props.directions} suppressMarkers={props.markers}/>}
+          <DirectionsRenderer directions={props.directions} suppressMarkers={props.markers}/>
         </GoogleMap>
-        {props.directions && 
-          <Paper style={{maxHeight: 200, overflow: 'auto'}}>
+        <Paper style={{maxHeight: 200, overflow: 'auto'}}>
           <List >
            {props.steps.map((step) => (
             <ListItem>
              <div dangerouslySetInnerHTML={{__html: step.instructions}} />
             </ListItem>
             ))
-
-              }
             }
            </List>
-           </Paper>
-         }
+          </Paper>
+          </div>
+        }
         
-      </div>
+      </React.Fragment>
     );
 
 return (
