@@ -6,20 +6,61 @@ import Button from '@material-ui/core/Button';
 import axios from "axios";
 import Map from "./Map.js"
 import MyMapComponent from "./MyMapComponent.js"
-import MyStepComponent from "./MyStepComponent.js"
 import StravaMapComponent from "./StravaMapComponent.js"
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import CssBaseline from '@material-ui/core/CssBaseline';
+import Paper from '@material-ui/core/Paper';
+import Fade from '@material-ui/core/Fade';
+import './title.css';
+
+
 
 let endpoint = "http://localhost:8080/api/execute";
 
 const useStyles = makeStyles((theme) => ({
-  paper: {
-    alignItems: 'center',
+
+  overall_layout: {
+    display: 'flex',
+    flexWrap: "wrap",
   },
+
+  layout: {
+    width: 500,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    // [theme.breakpoints.down(1010)]: {
+    //   marginLeft: 'auto',
+    //   marginRight: 'auto',
+    // },
+  },
+
+  map_layout: {
+    width: 600,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    // [theme.breakpoints.down(1000)]: {
+    //   marginLeft: 'auto',
+    //   marginRight: 'auto',
+    // },
+  },
+
+  paper: {
+    marginTop: theme.spacing(3),
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    padding: theme.spacing(2),
+  },
+
+  paper_for_map: {
+    height: `100%`,
+  padding: theme.spacing(2),
+
+  },
+
   heading: {
     margin: theme.spacing(3,0,0,3),
     color: 'black',
@@ -48,6 +89,7 @@ function Display() {
   const [path, setPath] = useState([40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641]);
   const [start, setStart] = useState([0,0]);
   const [end, setEnd] = useState([0,0]);
+  const [loading, setLoading] = useState(false);
 
 
 
@@ -56,11 +98,14 @@ function Display() {
         address: currentAddress,
         distance: currentMiles
       };
+      setStravaShow(false)
+      setLoading(true)
 
       axios.post(endpoint, request)
       .then(res => {
         console.log(res);
         console.log(res.data);
+        setLoading(false)
         if (res.data.Error == '') {
           console.log("No error")
           setResult(res.data.Path)
@@ -86,6 +131,7 @@ function Display() {
         address: currentAddress,
         distance: currentMiles
       };
+      setShow(false)
 
       axios.post(stravaendpoint, request)
       .then(res => {
@@ -134,7 +180,9 @@ function Display() {
 
 
   return (
-    <div>
+    <div className={classes.overall_layout}>
+    <main className={classes.layout}>
+      <Paper className={classes.paper}>
         <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
           What is your starting point?
         </Typography>
@@ -150,21 +198,43 @@ function Display() {
         <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
         Enter
         </Button>
-        <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
-        NextResult
-        </Button>
-        <Button className={classes.button} onClick={() => prevResult()} variant="contained" color="primary" >
-        PreviousResult
-        </Button>
         <Button className={classes.button} onClick={() => getStravaResult()} variant="contained" color="primary" >
         Routes Near Me
         </Button>
-        {show &&<Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          {resDist[currentIndex].toString() + " mile route below"}
+      </Paper>
+    </main>
+    <main>
+      {loading &&
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          Loading
         </Typography>
-        }
-        {show && <MyMapComponent org = {result[currentIndex]} />}
-        {showStrava && <StravaMapComponent path = {path} start = {start} end = {end} />}
+      }
+    </main>
+    <main className={classes.map_layout}>
+      {show &&
+      <Fade in={show}>
+          <Paper className={classes.paper}>
+          <MyMapComponent org = {result[currentIndex]} />
+          <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          {resDist[currentIndex].toString() + " mile route"}
+          </Typography>
+          <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
+          Next
+          </Button>
+          <Button className={classes.button} onClick={() => prevResult()} variant="contained" color="primary" >
+          Previous
+          </Button>
+          </Paper>
+      </Fade>
+      }
+      {showStrava &&
+      <Fade in={showStrava}>
+        <Paper className={classes.paper}>
+        <StravaMapComponent path = {path} start = {start} end = {end} />
+        </Paper>
+      </Fade>
+    }
+    </main>
         <Dialog
           open={open}
           onClose={handleClose}
@@ -188,13 +258,34 @@ function Display() {
     );
 }
 
+const overallStyles = makeStyles((theme) => ({
+   
+  heading: {
+    margin: theme.spacing(3,0,0,3),
+    color: 'black',
+    height: 48,
+  },
+  textField: {
+    width: '25ch',
+    margin: theme.spacing(0,0,3,3),
+  },
+  button: {
+    margin: theme.spacing(3,0,0,3),
+  },
+}));
+
 function App() {
 
-  const classes = useStyles();
+  const classes = overallStyles();
+
   return (
-    <div className={classes.paper}> 
-      <Display />
-    </div>
+    <React.Fragment>
+      <CssBaseline />
+        <Typography className="title.body" component="h1" variant="h4" align="center">
+          Rahi
+        </Typography>
+        <Display/>
+    </React.Fragment>
   );
 }
 
