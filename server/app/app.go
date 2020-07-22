@@ -40,13 +40,17 @@ type Response struct {
 	Error        string
 }
 
+type FullResponse struct {
+	Results []ResponseNew
+	Error string
+}
+
 type ResponseNew struct {
 	Org 		[]float64
 	Dest		[]float64
 	Path		[]float64
 	Distance 	float64
 	Directions 	[]LocOfTurn
-	Error		string
 }
 
 type StravaResponse struct {
@@ -159,8 +163,8 @@ type DirResp struct {
 }
 
 type LocOfTurn struct {
-	turn 		string
-	loc			Point
+	Turn 		string
+	Loc			Point
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -442,9 +446,9 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 
 		for _, v := range resp_body.Rt[0].Legs[0].Steps {
 			turnLocs := new(LocOfTurn)
-			turnLocs.turn = v.Maneuver
+			turnLocs.Turn = v.Maneuver
 			temp := NewPoint(v.LocStep.Lat, v.LocStep.Lng)
-			turnLocs.loc = temp
+			turnLocs.Loc = temp
 			result = append(result, *turnLocs)
 		}
 		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
@@ -532,21 +536,22 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 	return allDists
 }
 
-func getErrorResponse(error string) []ResponseNew {
-	var result []ResponseNew
-	temp := new(ResponseNew)
-	temp.Org = nil
-	temp.Dest = nil
-	temp.Path = nil
-	temp.Distance = 0.0
-	temp.Directions = nil
-	temp.Error = error
-	result = append(result, *temp)
-	return result
+func getErrorResponse(error string) *FullResponse {
+	this := new(FullResponse)
+	this.Results = nil
+	this.Error = error
+	return this
+}
+
+func newFullResponse(results []ResponseNew) *FullResponse {
+	this := new(FullResponse)
+	this.Results = results
+	this.Error = ``
+	return this
 }
 
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string, error_fix float64) []ResponseNew {
+func execute_request(input string, distance_string string, error_fix float64) *FullResponse {
 	var routeOrder []make_route
 	routeOrder = append(routeOrder, square_route, equilateral_triangle, right_triangle, right_triangleOther, straight_line)
 	//convert distance to float64
@@ -644,30 +649,15 @@ func execute_request(input string, distance_string string, error_fix float64) []
 		}
 		temp.Distance = pathDetails[i].distance
 		temp.Directions = pathDetails[i].turns
-		temp.Error = ``
 		result = append(result, *temp)
 	}
 	fmt.Println(result)
-	return result
+
+
+	return newFullResponse(result)
 }
 
-func newResponse(path [][]float64, distance []float64, percent_error float64, err string) *Response {
-	this := new(Response)
-	this.Path = path
-	this.Distance = distance
-	this.PercentError = percent_error
-	this.Error = err
-	return this
-}
 
-func newStravaResponse(path []float64, start []float64, end []float64, err string) *StravaResponse {
-	this := new(StravaResponse)
-	this.Path = path
-	this.Start = start
-	this.End = end
-	this.Error = err
-	return this
-}
 
 // Thinking all we have to do is pass result of execute request into json.NewEncoder thing but not too sure
 func Execute(w http.ResponseWriter, r *http.Request) {
@@ -695,7 +685,7 @@ func polylineToPath(polyline strava.Polyline) []float64 {
 	return path
 }
 
-func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) []ResponseNew {
+func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *FullResponse {
 
 	//check to see if radius is a proper number
 	radius, err := strconv.ParseFloat(radius_string, 64)
@@ -812,11 +802,10 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 		temp.Path = polylineToPath(responses[i].Polyline)
 		temp.Distance = responses[i].Distance*mtoMi
 		temp.Directions = nil
-		temp.Error = ``
 		result = append(result, *temp)
 	}
 	
-	return result
+	return newFullResponse(result)
 
 }
 
@@ -835,7 +824,7 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 	resp, err := api_request("http://localhost:5000/token")
 
 	if (err != ``) {
-		json.NewEncoder(w).Encode(newStravaResponse(nil, nil, nil, err))
+		json.NewEncoder(w).Encode(getErrorResponse(err))
 		return
 	}
 

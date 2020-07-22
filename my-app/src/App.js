@@ -5,7 +5,6 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from "axios";
 import MyMapComponent from "./MyMapComponent.js"
-import StravaMapComponent from "./StravaMapComponent.js"
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -76,20 +75,14 @@ const useStyles = makeStyles((theme) => ({
 
 function Display() {
   const classes = useStyles();
-  const [result, setResult] = useState([[40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641], [40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641], [40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641],]);
-  const [resDist, setResDist] = useState([0.0, 0.0, 0.0])
+  const [result, setResult] = useState([]);
   const [currentAddress, setCurrentAddress] = useState("");
   const [currentMiles, setCurrentMiles] = useState("0");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState(false);
-  const [showStrava, setStravaShow] = useState(false);
-  const [path, setPath] = useState([40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641, 40.443659, -79.944641]);
-  const [start, setStart] = useState([0,0]);
-  const [end, setEnd] = useState([0,0]);
   const [loading, setLoading] = useState(false);
-
 
 
   function getResult() {
@@ -97,7 +90,6 @@ function Display() {
         address: currentAddress,
         distance: currentMiles
       };
-      setStravaShow(false)
       setLoading(true)
 
       axios.post(endpoint, request)
@@ -107,16 +99,15 @@ function Display() {
         setLoading(false)
         if (res.data.Error == '') {
           console.log("No error")
-          setResult(res.data.Path)
-          setResDist(res.data.Distance)
+          setResult(res.data.Results)
           setCurrentIndex(0)
           setShow(true)
         } else {
           setError(res.data.Error)
           setOpen(true)
         }
+
         
-        console.log(res.data.Path)
       })
 
 
@@ -130,18 +121,16 @@ function Display() {
         address: currentAddress,
         distance: currentMiles
       };
-      setShow(false)
 
       axios.post(stravaendpoint, request)
       .then(res => {
         console.log(res);
         console.log(res.data);
         if (res.data.Error == '') {
-          setPath(res.data.Path)
-          console.log(res.data.Path)
-          setStart(res.data.Start)
-          setEnd(res.data.End)
-          setStravaShow(true)
+          console.log("No error")
+          setResult(res.data.Results)
+          setCurrentIndex(0)
+          setShow(true)
         } else {
           setError(res.data.Error)
           setOpen(true)
@@ -151,18 +140,16 @@ function Display() {
 
   function handleAddress(e) {
     setShow(false)
-    setStravaShow(false)
     setCurrentAddress(e.target.value)
   }
 
   function handleMiles(e) {
     setShow(false)
-    setStravaShow(false)
     setCurrentMiles(e.target.value)
   }
 
   function nextResult() {
-    if (currentIndex < 2) {
+    if (currentIndex < result.length - 1) {
       setCurrentIndex(currentIndex+1)
     }
   }
@@ -213,9 +200,9 @@ function Display() {
       {show &&
       <Fade in={show}>
           <Paper className={classes.paper}>
-          <MyMapComponent org = {result[currentIndex]} />
+          <MyMapComponent response = {result[currentIndex]} />
           <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          {resDist[currentIndex].toString() + " mile route"}
+          {result[currentIndex].Distance.toString() + " mile route"}
           </Typography>
           <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
           Next
@@ -226,13 +213,6 @@ function Display() {
           </Paper>
       </Fade>
       }
-      {showStrava &&
-      <Fade in={showStrava}>
-        <Paper className={classes.paper}>
-        <StravaMapComponent path = {path} start = {start} end = {end} />
-        </Paper>
-      </Fade>
-    }
     </main>
         <Dialog
           open={open}
