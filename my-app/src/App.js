@@ -5,6 +5,7 @@ import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import axios from "axios";
 import MyMapComponent from "./MyMapComponent.js"
+import DirectionsViewer from "./DirectionsViewer.js"
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -17,17 +18,21 @@ import './title.css';
 
 
 
-let endpoint = "http://localhost:8080/api/execute";
+let endpoint = "http://localhost:8080/api/tester";
 
 const useStyles = makeStyles((theme) => ({
 
   overall_layout: {
     display: 'flex',
     flexWrap: "wrap",
+    // [theme.breakpoints.down(1100)]: {
+    //   display: "",
+    //   flexWrap: "nowrap",
+    // }
   },
 
   layout: {
-    width: 500,
+    width: 400,
     marginLeft: 'auto',
     marginRight: 'auto',
     // [theme.breakpoints.down(1010)]: {
@@ -44,6 +49,12 @@ const useStyles = makeStyles((theme) => ({
     //   marginLeft: 'auto',
     //   marginRight: 'auto',
     // },
+  },
+
+  directions_layout:{
+    width: 600,
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
 
   paper: {
@@ -82,6 +93,7 @@ function Display() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState(false);
+  const [showDirections, setShowDirections] = useState(false);
   const [loading, setLoading] = useState(false);
 
 
@@ -160,6 +172,10 @@ function Display() {
     }
   }
 
+  function buttonShowDirections() {
+    setShowDirections(true)
+  }
+
   const handleClose = () => {
     setOpen(false);
   };
@@ -196,24 +212,34 @@ function Display() {
         </Typography>
       }
     </main>
-    <main className={classes.map_layout}>
-      {show &&
-      <Fade in={show}>
+    {show &&
+      <main className={classes.map_layout}>
+        <Fade in={show}>
+            <Paper className={classes.paper}>
+            <MyMapComponent response = {result[currentIndex]} />
+            <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+            {result[currentIndex].Distance.toString() + " mile route"}
+            </Typography>
+            <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
+            Next
+            </Button>
+            <Button className={classes.button} onClick={() => prevResult()} variant="contained" color="primary" >
+            Previous
+            </Button>
+            <Button className={classes.button} onClick={() => buttonShowDirections()} variant="contained" color="primary" >
+            Show Directions
+            </Button>
+            </Paper>
+        </Fade>
+      </main>
+    }
+    {showDirections &&
+      <main className={classes.directions_layout}>
           <Paper className={classes.paper}>
-          <MyMapComponent response = {result[currentIndex]} />
-          <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          {result[currentIndex].Distance.toString() + " mile route"}
-          </Typography>
-          <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
-          Next
-          </Button>
-          <Button className={classes.button} onClick={() => prevResult()} variant="contained" color="primary" >
-          Previous
-          </Button>
+            <DirectionsViewer steps={result[currentIndex].Directions}/>
           </Paper>
-      </Fade>
-      }
-    </main>
+       </main>
+     }
         <Dialog
           open={open}
           onClose={handleClose}

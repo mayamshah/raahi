@@ -142,6 +142,7 @@ type Pt struct {
 type Steps struct {
 	Maneuver	string 		`json:"maneuver"`
 	LocStep		Pt			`json:"start_location"`
+	Html_Instructions string `json:"html_instructions"`
 }
 
 type Legs struct {
@@ -164,7 +165,8 @@ type DirResp struct {
 
 type LocOfTurn struct {
 	Turn 		string
-	Loc			Point
+	Instructions string
+	Loc			[]float64
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -447,7 +449,8 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 		for _, v := range resp_body.Rt[0].Legs[0].Steps {
 			turnLocs := new(LocOfTurn)
 			turnLocs.Turn = v.Maneuver
-			temp := NewPoint(v.LocStep.Lat, v.LocStep.Lng)
+			turnLocs.Instructions = v.Html_Instructions
+			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
 			turnLocs.Loc = temp
 			result = append(result, *turnLocs)
 		}
@@ -833,6 +836,47 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, resp_body.AccessToken)
 	json.NewEncoder(w).Encode(StravaResponse)
+}
+
+func Tester(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	var req Request
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	temp := new(ResponseNew)
+	temp.Org = []float64{37.2862852, -122.0081542}
+	temp.Dest = []float64{37.2862852, -122.0081542}
+	temp.Path = []float64{37.28319,-122.01359, 37.28837, -122.01194}
+	temp.Distance = 1.39870387
+
+
+	stop_1 := new(LocOfTurn)
+	stop_1.Instructions = "Head <b>south</b> on <b>Palmtag Dr</b> toward <b>Bellwood Dr</b>"
+	stop_1.Loc = []float64{37.2862401,  -122.0078964}
+	stop_1.Turn =  ""
+
+	stop_2 := new(LocOfTurn)
+	stop_2.Instructions = "Turn <b>right</b> onto <b>Bellwood Dr</b>"
+	stop_2.Loc = []float64{37.2856419, -122.0080037}
+	stop_2.Turn =  "turn-right"
+
+	stop_3 := new(LocOfTurn)
+	stop_3.Instructions = "Turn <b>left</b> onto <b>Titus Ave</b>"
+	stop_3.Loc = []float64{37.2857637, -122.0100177}
+	stop_3.Turn =  "turn-left"
+
+	temp.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+
+	response := newFullResponse([]ResponseNew{*temp})
+	fmt.Println(response)
+
+	json.NewEncoder(w).Encode(response)
+
 }
 
 // func main() {

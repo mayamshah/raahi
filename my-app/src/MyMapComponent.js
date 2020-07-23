@@ -10,6 +10,8 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import Paper from '@material-ui/core/Paper';
 import CssBaseline from '@material-ui/core/CssBaseline';
+import Button from '@material-ui/core/Button';
+
 
 
 
@@ -74,19 +76,7 @@ render() {
         >
           <DirectionsRenderer directions={props.directions} suppressMarkers={props.markers}/>
         </GoogleMap>
-      {props.steps != null &&
-        <Paper style={{maxHeight: 200, overflow: 'auto'}}>
-          <List >
-           {props.steps.map((step) => (
-            <ListItem>
-             {step.Turn}
-            </ListItem>
-            ))
-        }
-           </List>
-          </Paper>
-        }
-          </div>
+        </div>
         }
         
       </React.Fragment>
