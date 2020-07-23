@@ -40,6 +40,19 @@ type Response struct {
 	Error        string
 }
 
+type FullResponse struct {
+	Results []ResponseNew
+	Error string
+}
+
+type ResponseNew struct {
+	Org 		[]float64
+	Dest		[]float64
+	Path		[]float64
+	Distance 	float64
+	Directions 	[]LocOfTurn
+}
+
 type StravaResponse struct {
 	Path  []float64
 	Start []float64
@@ -129,6 +142,7 @@ type Pt struct {
 type Steps struct {
 	Maneuver	string 		`json:"maneuver"`
 	LocStep		Pt			`json:"start_location"`
+	Html_Instructions string `json:"html_instructions"`
 }
 
 type Legs struct {
@@ -150,8 +164,9 @@ type DirResp struct {
 }
 
 type LocOfTurn struct {
-	turn 		string
-	loc			Point
+	Turn 		string
+	Instructions string
+	Loc			[]float64
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -433,9 +448,10 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 
 		for _, v := range resp_body.Rt[0].Legs[0].Steps {
 			turnLocs := new(LocOfTurn)
-			turnLocs.turn = v.Maneuver
-			temp := NewPoint(v.LocStep.Lat, v.LocStep.Lng)
-			turnLocs.loc = temp
+			turnLocs.Turn = v.Maneuver
+			turnLocs.Instructions = v.Html_Instructions
+			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
+			turnLocs.Loc = temp
 			result = append(result, *turnLocs)
 		}
 		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
@@ -523,15 +539,29 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath 
 	return allDists
 }
 
+func getErrorResponse(error string) *FullResponse {
+	this := new(FullResponse)
+	this.Results = nil
+	this.Error = error
+	return this
+}
+
+func newFullResponse(results []ResponseNew) *FullResponse {
+	this := new(FullResponse)
+	this.Results = results
+	this.Error = ``
+	return this
+}
+
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string, error_fix float64) ([][]float64, []float64, float64, string) {
+func execute_request(input string, distance_string string, error_fix float64) *FullResponse {
 	var routeOrder []make_route
 	routeOrder = append(routeOrder, square_route, equilateral_triangle, right_triangle, right_triangleOther, straight_line)
 	//convert distance to float64
 	//check to see if distance is a proper number
 	distance, err := strconv.ParseFloat(distance_string, 64)
 	if err != nil {
-		return nil, nil, 0, "Not a valid distance"
+		return getErrorResponse("Not a valid distance")
 	}
 
 	//form url from address
@@ -541,12 +571,12 @@ func execute_request(input string, distance_string string, error_fix float64) ([
 	response, error := api_request(url)
 
 	if (error != ``) {
-		return nil, nil, 0, error
+		return getErrorResponse(error)
 	}
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
-		return nil, nil, 0, "Address doesn't exist"
+		return getErrorResponse("Address does not exist")
 	}
 
 	//get the latitude and longitude
@@ -575,7 +605,7 @@ func execute_request(input string, distance_string string, error_fix float64) ([
 	}
 	//checks to make sure there are paths found
 	if len(pathDetails) == 0 {
-		return nil, nil, 0, "No paths found"
+		return getErrorResponse("No paths found")
 	}
 	fmt.Println(len(pathDetails))
 
@@ -584,7 +614,7 @@ func execute_request(input string, distance_string string, error_fix float64) ([
 		return math.Abs(pathDetails[i].distance-pathDetails[i].desired) < math.Abs(pathDetails[j].distance-pathDetails[j].desired)
 	})
 
-	percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
+	//percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
 	//Outputs best path with distance and percent error
 
 	if len(pathDetails) > 8 {
@@ -594,46 +624,45 @@ func execute_request(input string, distance_string string, error_fix float64) ([
 	
 	//@Agam what does this do?
 	//it creates a 2d array of the appropriate size
-	resPaths := make([][]float64, len(pathDetails))
-	var resDists []float64
+	// resPaths := make([][]float64, len(pathDetails))
+	// var resDists []float64
 
-	var i int
-	for _, elem := range pathDetails {
-		fmt.Println(elem)
-		resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
+	// var i int
+	// for _, elem := range pathDetails {
+	// 	fmt.Println(elem)
+	// 	resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
 	
+	// 	for _, pt := range pathDetails[i].path {
+	// 		curLat := pt.lat
+	// 		curLng := pt.lng
+	// 		resPaths[i] = append(resPaths[i], curLat, curLng)
+	// 	}
+	// 	resDists = append(resDists, pathDetails[i].distance)
+	// 	i++
+	// }
+
+
+	var result []ResponseNew
+	for i := 0; i < len(pathDetails); i++ {
+		temp := new(ResponseNew)
+		temp.Org = append(temp.Org, origin.lat, origin.lng)
+		temp.Dest = append(temp.Dest, origin.lat, origin.lng)
 		for _, pt := range pathDetails[i].path {
-			curLat := pt.lat
-			curLng := pt.lng
-			resPaths[i] = append(resPaths[i], curLat, curLng)
+			temp.Path = append(temp.Path, pt.lat, pt.lng)
 		}
-		resDists = append(resDists, pathDetails[i].distance)
-		i++
+		temp.Distance = pathDetails[i].distance
+		temp.Directions = pathDetails[i].turns
+		result = append(result, *temp)
 	}
+	fmt.Println(result)
 
-	fmt.Println(resPaths)
-	fmt.Println(resDists)
-	return resPaths, resDists, percent_error, ``
+
+	return newFullResponse(result)
 }
 
-func newResponse(path [][]float64, distance []float64, percent_error float64, err string) *Response {
-	this := new(Response)
-	this.Path = path
-	this.Distance = distance
-	this.PercentError = percent_error
-	this.Error = err
-	return this
-}
 
-func newStravaResponse(path []float64, start []float64, end []float64, err string) *StravaResponse {
-	this := new(StravaResponse)
-	this.Path = path
-	this.Start = start
-	this.End = end
-	this.Error = err
-	return this
-}
 
+// Thinking all we have to do is pass result of execute request into json.NewEncoder thing but not too sure
 func Execute(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
@@ -643,8 +672,9 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 
 	var req Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	path, distance, percent_error, err := execute_request(req.Address, req.Distance, 1.0)
-	json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
+	//path, distance, percent_error, err := execute_request(req.Address, req.Distance, 1.0)
+	//json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
+	json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance, 1.0))
 }
 
 func polylineToPath(polyline strava.Polyline) []float64 {
@@ -658,12 +688,12 @@ func polylineToPath(polyline strava.Polyline) []float64 {
 	return path
 }
 
-func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *StravaResponse {
+func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *FullResponse {
 
 	//check to see if radius is a proper number
 	radius, err := strconv.ParseFloat(radius_string, 64)
 	if err != nil {
-		return newStravaResponse(nil, nil, nil, "Not a valid radius")
+		return getErrorResponse("Not a valid radius")
 	}
 
 	//form url from address
@@ -672,12 +702,12 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	//get response from google api server
 	response, error := api_request(url)
 	if (error != ``) {
-		return newStravaResponse(nil, nil, nil, error)
+		return getErrorResponse(error)
 	}
 
 	//check to see if address exists
 	if !check_responseGeocode(response) {
-		return newStravaResponse(nil, nil, nil, "Address doesn't exist")
+		return getErrorResponse("Address doesn't exist")
 	}
 
 	//get the latitude and longitude
@@ -687,11 +717,11 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	//get the points for teh request
 	top_right, error := get_point(origin, radius/2, 45, false)
 	if (error != ``) {
-		return newStravaResponse(nil, nil, nil, error)
+		return getErrorResponse(error)
 	}
 	bottom_left, error := get_point(origin, radius/2, 45+180, false)
 	if (error != ``) {
-		return newStravaResponse(nil, nil, nil, error)
+		return getErrorResponse(error)
 	}
 	fmt.Println(top_right)
 	fmt.Println(bottom_left)
@@ -703,19 +733,18 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 
 	responses, err := SegmentCall.Do()
 	if err != nil {
-		fmt.Println(`strava error`)
-		return newStravaResponse(nil, nil, nil, fmt.Sprintf("%s", err))
+		return getErrorResponse(fmt.Sprintf(`%s`, err))
 	}
 
 	fmt.Println(len(responses))
 
 	if len(responses) <= 0 {
-		return newStravaResponse(nil, nil, nil, "No routes found")
+		return getErrorResponse(`No routes found`)
 	}
 
 	distance, err := strconv.ParseFloat(distance_string, 64)
 	if err != nil {
-		return newStravaResponse(nil, nil, nil, "Not a valid distance")
+		return getErrorResponse(`Not a valid distance`)
 	}
 	const mtoMi float64 = 0.00062137
 
@@ -738,8 +767,8 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	// 	}
 	// }
 
-	start := responses[0].StartLocation
-	end := responses[0].EndLocation
+	//start := responses[0].StartLocation
+	//end := responses[0].EndLocation
 	path := polylineToPath(responses[0].Polyline)
 	fmt.Println(path)
 	if (len(path) > (23 * 2)) {
@@ -768,10 +797,22 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	fmt.Println(resEnds)
 	fmt.Println(resDists)
 
-	return newStravaResponse(path, []float64{start[0], start[1]}, []float64{end[0], end[1]}, ``)
+	var result []ResponseNew
+	for i := 0; i < len(responses); i++ {
+		temp := new(ResponseNew)
+		temp.Org = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
+		temp.Dest = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
+		temp.Path = polylineToPath(responses[i].Polyline)
+		temp.Distance = responses[i].Distance*mtoMi
+		temp.Directions = nil
+		result = append(result, *temp)
+	}
+	
+	return newFullResponse(result)
 
 }
 
+// This might need to be changed too see line 670
 func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
@@ -786,7 +827,7 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 	resp, err := api_request("http://localhost:5000/token")
 
 	if (err != ``) {
-		json.NewEncoder(w).Encode(newStravaResponse(nil, nil, nil, err))
+		json.NewEncoder(w).Encode(getErrorResponse(err))
 		return
 	}
 
@@ -795,6 +836,47 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 
 	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, resp_body.AccessToken)
 	json.NewEncoder(w).Encode(StravaResponse)
+}
+
+func Tester(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	var req Request
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	temp := new(ResponseNew)
+	temp.Org = []float64{37.2862852, -122.0081542}
+	temp.Dest = []float64{37.2862852, -122.0081542}
+	temp.Path = []float64{37.28319,-122.01359, 37.28837, -122.01194}
+	temp.Distance = 1.39870387
+
+
+	stop_1 := new(LocOfTurn)
+	stop_1.Instructions = "Head <b>south</b> on <b>Palmtag Dr</b> toward <b>Bellwood Dr</b>"
+	stop_1.Loc = []float64{37.2862401,  -122.0078964}
+	stop_1.Turn =  ""
+
+	stop_2 := new(LocOfTurn)
+	stop_2.Instructions = "Turn <b>right</b> onto <b>Bellwood Dr</b>"
+	stop_2.Loc = []float64{37.2856419, -122.0080037}
+	stop_2.Turn =  "turn-right"
+
+	stop_3 := new(LocOfTurn)
+	stop_3.Instructions = "Turn <b>left</b> onto <b>Titus Ave</b>"
+	stop_3.Loc = []float64{37.2857637, -122.0100177}
+	stop_3.Turn =  "turn-left"
+
+	temp.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+
+	response := newFullResponse([]ResponseNew{*temp})
+	fmt.Println(response)
+
+	json.NewEncoder(w).Encode(response)
+
 }
 
 // func main() {
@@ -828,5 +910,5 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 // 	distance := "1"
 // 	execute_request(input, distance, 1.0)
 // 	fmt.Println("strava response below")
-// 	ExecuteStravaRequest(input, distance, "10", 1.0, `d11fe6a257303cf24de1181586f335f86d24db88`)
+// 	//ExecuteStravaRequest(input, distance, "10", 1.0, `d11fe6a257303cf24de1181586f335f86d24db88`)
 // }

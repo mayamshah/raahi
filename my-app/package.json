@@ -11,7 +11,9 @@
     "html-react-parser": "^0.13.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-google-map-street-view": "^1.1.0",
     "react-google-maps": "^9.4.5",
+    "react-google-streetview": "0.0.9",
     "react-scripts": "3.4.1",
     "react-window": "^1.8.5",
     "recompose": "^0.30.0"
