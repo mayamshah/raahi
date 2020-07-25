@@ -1,14 +1,14 @@
-package app
+package main
 
 import (
-	// "bufio"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 
-	// "os"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -460,10 +460,11 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 	return 0.0, result, resp_body.Status
 }
 
-func get_distance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
+func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
 	var allDists []DistAndPath
 	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
 	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
+	sumDist := 0.0
 	for _, v := range pathSlice {
 		tempUrl := "https://maps.googleapis.com/maps/api/directions/json?origin=" + oLat + "," + oLng + "&destination=" + oLat + "," + oLng + MODE + "&waypoints="
 		for _, x := range v {
@@ -474,12 +475,14 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) []DistAndPath
 		tempUrl = strings.TrimSuffix(tempUrl, "|")
 		url := tempUrl + KEY
 		dist, turnLocs, err := distanceHelp(url)
-		fmt.Println(turnLocs)
-		fmt.Println(dist * 0.00062137, "for above turns")
+		// fmt.Println(turnLocs)
+		// fmt.Println(dist * 0.00062137, "for above turns")
 		if (err == ``) {
 			// convert output in meters to miles
 			const mtoMi float64 = 0.00062137
 			distMi := dist * mtoMi
+			fmt.Println(distMi)
+			sumDist += distMi
 			//only includes paths which are at least the desired length and at most desired length + 1 mi
 			if ((distMi > desired) && (distMi < (desired + 1))) {
 				temp := new(DistAndPath)
@@ -491,53 +494,53 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) []DistAndPath
 			}
 		}
 	}
-	return allDists
+	return allDists, sumDist / float64(len(pathSlice))
 }
 
 //given paths, origin, and desired distance, returns slice of all distance lengths and paths
-func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
-	var allDists []DistAndPath
-	for _, v := range pathSlice {
+// func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
+// 	var allDists []DistAndPath
+// 	for _, v := range pathSlice {
 
-		totalDist := 0
-		prevLat := org.lat
-		prevLng := org.lng
-		overall_error := ``
-		for _, x := range v {
-			curLat := x.lat
-			curLng := x.lng
-			some, err  := distance(prevLat, prevLng, curLat, curLng)
-			if (err == ``) {
-				totalDist += some 
-			} else {
-				overall_error = err
-				break
-			}
-			prevLat = curLat
-			prevLng = curLng
-		}
+// 		totalDist := 0
+// 		prevLat := org.lat
+// 		prevLng := org.lng
+// 		overall_error := ``
+// 		for _, x := range v {
+// 			curLat := x.lat
+// 			curLng := x.lng
+// 			some, err  := distance(prevLat, prevLng, curLat, curLng)
+// 			if (err == ``) {
+// 				totalDist += some 
+// 			} else {
+// 				overall_error = err
+// 				break
+// 			}
+// 			prevLat = curLat
+// 			prevLng = curLng
+// 		}
 
-		some, err := distance(prevLat, prevLng, org.lat, org.lng)
-		totalDist += some
+// 		some, err := distance(prevLat, prevLng, org.lat, org.lng)
+// 		totalDist += some
 
-		if (overall_error == `` && err == ``) {
-			// convert output in meters to miles
-			const mtoMi float64 = 0.00062137
-			//only includes paths which are at least the desired length
-			if float64(totalDist)*mtoMi > desired {
-				// if true {
-				temp := new(DistAndPath)
-				temp.distance = float64(totalDist) * mtoMi
-				temp.path = v
-				temp.desired = desired
-				allDists = append(allDists, *temp)
-			}
-		}
+// 		if (overall_error == `` && err == ``) {
+// 			// convert output in meters to miles
+// 			const mtoMi float64 = 0.00062137
+// 			//only includes paths which are at least the desired length
+// 			if float64(totalDist)*mtoMi > desired {
+// 				// if true {
+// 				temp := new(DistAndPath)
+// 				temp.distance = float64(totalDist) * mtoMi
+// 				temp.path = v
+// 				temp.desired = desired
+// 				allDists = append(allDists, *temp)
+// 			}
+// 		}
 
-	}
+// 	}
 
-	return allDists
-}
+// 	return allDists
+// }
 
 func getErrorResponse(error string) *FullResponse {
 	this := new(FullResponse)
@@ -556,7 +559,7 @@ func newFullResponse(results []ResponseNew) *FullResponse {
 //given an address, distance and route, finds a path
 func execute_request(input string, distance_string string, error_fix float64) *FullResponse {
 	var routeOrder []make_route
-	routeOrder = append(routeOrder, square_route, equilateral_triangle, right_triangle, right_triangleOther, straight_line)
+	routeOrder = append(routeOrder, square_route, square_route, equilateral_triangle, equilateral_triangle, right_triangle, right_triangle)
 	//convert distance to float64
 	//check to see if distance is a proper number
 	distance, err := strconv.ParseFloat(distance_string, 64)
@@ -588,19 +591,27 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 	routes := create_routes(origin, distance*(error_fix), 8.0, routeOrder[0])
 
 	desired := distance
-	pathDetails := get_distance(routes, origin, float64(desired))
-
+	pathDetails, avgDist := get_distance(routes, origin, float64(desired))
+	fmt.Println(avgDist)
+	error_fix = desired / avgDist
+	fmt.Println(error_fix)
 	attempts := 0
 	for len(pathDetails) < 8 {
 		attempts += 1
-		if attempts > 4 {
+		if attempts > 5 {
 			fmt.Println(`At least we tried`)
 			break
 		}
 		fmt.Println(len(pathDetails), "returnable routes")
 		fmt.Println("attempt", attempts)
+		fmt.Println(error_fix)
+		if attempts % 2 == 0 {
+			error_fix = 1.0
+		}
 		routes = create_routes(origin, distance*(error_fix), 8.0, routeOrder[attempts])
-		pathDetails = append(pathDetails, get_distance(routes, origin, float64(desired))...)
+		morePaths, avgDist := get_distance(routes, origin, float64(desired))
+		error_fix = desired / avgDist
+		pathDetails = append(pathDetails, morePaths...)
 
 	}
 	//checks to make sure there are paths found
@@ -654,7 +665,7 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 		temp.Directions = pathDetails[i].turns
 		result = append(result, *temp)
 	}
-	fmt.Println(result)
+	// fmt.Println(result)
 
 
 	return newFullResponse(result)
@@ -879,36 +890,36 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// func main() {
+func main() {
 
-// 	//setup the scanner
-// 	scanner := bufio.NewScanner(os.Stdin)
+	//setup the scanner
+	scanner := bufio.NewScanner(os.Stdin)
 
-// 	//ask for address
-// 	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
+	//ask for address
+	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
 
-// 	//read user input
-// 	var input string
-// 	for scanner.Scan() {
-// 		input = scanner.Text()
-// 		if strings.Contains(input, "") {
-// 			break
-// 		}
-// 	}
+	//read user input
+	var input string
+	for scanner.Scan() {
+		input = scanner.Text()
+		if strings.Contains(input, "") {
+			break
+		}
+	}
 
-// 	//ask for distance
-// 	// fmt.Printf("Enter desired distance in miles\n")
+	// ask for distance
+	fmt.Printf("Enter desired distance in miles\n")
 
-// 	//read user input
-// 	// var distance string
-// 	// for scanner.Scan() {
-// 	// 	distance = scanner.Text()
-// 	// 	if strings.Contains(distance, "") {
-// 	// 		break
-// 	// 	}
-// 	// }
-// 	distance := "1"
-// 	execute_request(input, distance, 1.0)
-// 	fmt.Println("strava response below")
-// 	//ExecuteStravaRequest(input, distance, "10", 1.0, `d11fe6a257303cf24de1181586f335f86d24db88`)
-// }
+	// read user input
+	var distance string
+	for scanner.Scan() {
+		distance = scanner.Text()
+		if strings.Contains(distance, "") {
+			break
+		}
+	}
+	// distance := "1"
+	execute_request(input, distance, 1.0)
+	//fmt.Println("strava response below")
+	//ExecuteStravaRequest(input, distance, "10", 1.0, `d11fe6a257303cf24de1181586f335f86d24db88`)
+}
