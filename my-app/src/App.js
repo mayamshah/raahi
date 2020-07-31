@@ -14,6 +14,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Paper from '@material-ui/core/Paper';
 import Fade from '@material-ui/core/Fade';
+import Directions from "./NewMap.js"
 import './title.css';
 
 
@@ -205,14 +206,8 @@ function Display() {
         </Button>
       </Paper>
     </main>
-    <main>
-      {loading &&
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          Loading
-        </Typography>
-      }
-    </main>
-    {show &&
+    {show &&  <Directions response = {result[currentIndex]}/> }
+    {false &&
       <main className={classes.map_layout}>
         <Fade in={show}>
             <Paper className={classes.paper}>
@@ -240,6 +235,14 @@ function Display() {
           </Paper>
        </main>
      }
+    <main>
+      {loading &&
+        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+          Loading
+        </Typography>
+      }
+    </main>
+
         <Dialog
           open={open}
           onClose={handleClose}
@@ -293,6 +296,5 @@ function App() {
     </React.Fragment>
   );
 }
-
 
 export default App;

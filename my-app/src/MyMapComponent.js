@@ -2,7 +2,7 @@
 import React, {useState} from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import  { compose, withProps, lifecycle } from 'recompose'
-import {withScriptjs, withGoogleMap, GoogleMap, DirectionsRenderer} from 'react-google-maps'
+import {withScriptjs, withGoogleMap, GoogleMap, DirectionsRenderer, StreetViewPanorama} from 'react-google-maps'
 import Typography from '@material-ui/core/Typography';
 import PropTypes from 'prop-types';
 import List from '@material-ui/core/List';
@@ -40,7 +40,8 @@ render() {
         containerElement: <div style={{ height: `100%`}} />,
         mapElement: <div style={{ height: `500px`, width: `100%`}}  />,
         response: this.props.response,
-        steps: this.props.response.Directions
+        steps: this.props.response.Directions,
+        center: { lat: this.props.response.Org[0], lng: this.props.response.Org[1] },
       }),
       withScriptjs,
       withGoogleMap,
