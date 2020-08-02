@@ -140,9 +140,10 @@ type Pt struct {
 }
 
 type Steps struct {
-	Maneuver	string 		`json:"maneuver"`
-	LocStep		Pt			`json:"start_location"`
-	Html_Instructions string `json:"html_instructions"`
+	Maneuver			string 		`json:"maneuver"`
+	LocStep				Pt			`json:"start_location"`
+	LocStepEnd			Pt			`json:"end_location"`
+	Html_Instructions 	string 		`json:"html_instructions"`
 }
 
 type Legs struct {
@@ -164,9 +165,10 @@ type DirResp struct {
 }
 
 type LocOfTurn struct {
-	Turn 		string
-	Instructions string
-	Loc			[]float64
+	Turn 			string
+	Instructions 	string
+	Loc				[]float64
+	Angle			float64
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -452,6 +454,8 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			turnLocs.Instructions = v.Html_Instructions
 			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
 			turnLocs.Loc = temp
+			angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
+			turnLocs.Angle = angle
 			result = append(result, *turnLocs)
 		}
 		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
@@ -481,7 +485,6 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPat
 			// convert output in meters to miles
 			const mtoMi float64 = 0.00062137
 			distMi := dist * mtoMi
-			fmt.Println(distMi)
 			sumDist += distMi
 			//only includes paths which are at least the desired length and at most desired length + 1 mi
 			if ((distMi > desired) && (distMi < (desired + 1))) {
@@ -496,51 +499,6 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPat
 	}
 	return allDists, sumDist / float64(len(pathSlice))
 }
-
-//given paths, origin, and desired distance, returns slice of all distance lengths and paths
-// func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
-// 	var allDists []DistAndPath
-// 	for _, v := range pathSlice {
-
-// 		totalDist := 0
-// 		prevLat := org.lat
-// 		prevLng := org.lng
-// 		overall_error := ``
-// 		for _, x := range v {
-// 			curLat := x.lat
-// 			curLng := x.lng
-// 			some, err  := distance(prevLat, prevLng, curLat, curLng)
-// 			if (err == ``) {
-// 				totalDist += some 
-// 			} else {
-// 				overall_error = err
-// 				break
-// 			}
-// 			prevLat = curLat
-// 			prevLng = curLng
-// 		}
-
-// 		some, err := distance(prevLat, prevLng, org.lat, org.lng)
-// 		totalDist += some
-
-// 		if (overall_error == `` && err == ``) {
-// 			// convert output in meters to miles
-// 			const mtoMi float64 = 0.00062137
-// 			//only includes paths which are at least the desired length
-// 			if float64(totalDist)*mtoMi > desired {
-// 				// if true {
-// 				temp := new(DistAndPath)
-// 				temp.distance = float64(totalDist) * mtoMi
-// 				temp.path = v
-// 				temp.desired = desired
-// 				allDists = append(allDists, *temp)
-// 			}
-// 		}
-
-// 	}
-
-// 	return allDists
-// }
 
 func getErrorResponse(error string) *FullResponse {
 	this := new(FullResponse)
@@ -625,33 +583,12 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 		return math.Abs(pathDetails[i].distance-pathDetails[i].desired) < math.Abs(pathDetails[j].distance-pathDetails[j].desired)
 	})
 
-	//percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
-	//Outputs best path with distance and percent error
 
 	if len(pathDetails) > 8 {
 		//only want best 8 if there are more then 8
 		pathDetails = pathDetails[0:8]
 	}
 	
-	//@Agam what does this do?
-	//it creates a 2d array of the appropriate size
-	// resPaths := make([][]float64, len(pathDetails))
-	// var resDists []float64
-
-	// var i int
-	// for _, elem := range pathDetails {
-	// 	fmt.Println(elem)
-	// 	resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
-	
-	// 	for _, pt := range pathDetails[i].path {
-	// 		curLat := pt.lat
-	// 		curLng := pt.lng
-	// 		resPaths[i] = append(resPaths[i], curLat, curLng)
-	// 	}
-	// 	resDists = append(resDists, pathDetails[i].distance)
-	// 	i++
-	// }
-
 
 	var result []ResponseNew
 	for i := 0; i < len(pathDetails); i++ {
@@ -768,52 +705,34 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	if len(responses) > 4 {
 		responses = responses[0:4]
 	}
-	// best_distance_index := 0
-	// best_distance_difference := math.Abs(distance - responses[0].Distance)
 
-	// for i, resp := range responses {
-	// 	if math.Abs(distance-resp.Distance) < best_distance_difference {
-	// 		best_distance_index = i
-	// 		best_distance_difference = math.Abs(distance - resp.Distance)
-	// 	}
-	// }
-
-	//start := responses[0].StartLocation
-	//end := responses[0].EndLocation
-	path := polylineToPath(responses[0].Polyline)
-	fmt.Println(path)
-	if (len(path) > (23 * 2)) {
-		lessPath := make([]float64, 23 * 2)
-		incr := len(path) / 2 / 23
-		for i := 0; i < 46; i+=2 {
-			lessPath[i] = path[i * incr]
-			lessPath[i + 1] = path[i * incr + 1]
-		}
-		path = lessPath
-	}
-
-
-	resPaths := make([][]float64, len(responses))
-	resStarts := make([][]float64, len(responses))
-	resEnds := make([][]float64, len(responses))
-	var resDists []float64
-	for i := 0; i < len(responses); i++ {
-		resPaths[i] = polylineToPath(responses[i].Polyline)
-		resStarts[i] = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
-		resEnds[i] = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
-		resDists = append(resDists, responses[i].Distance*mtoMi)
-	}
-	fmt.Println(resPaths)
-	fmt.Println(resStarts)
-	fmt.Println(resEnds)
-	fmt.Println(resDists)
 
 	var result []ResponseNew
 	for i := 0; i < len(responses); i++ {
 		temp := new(ResponseNew)
 		temp.Org = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
 		temp.Dest = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
-		temp.Path = polylineToPath(responses[i].Polyline)
+		path := polylineToPath(responses[i].Polyline)
+		fmt.Println(path)
+		//limits to 23 waypoints
+		if (len(path) > (23 * 2)) {
+			var lessPath []float64
+			removeNum := len(path) / 2 - 23
+			increm := len(path) / 2 / removeNum
+			fmt.Println(removeNum)
+			fmt.Println(increm)
+			j := 0
+			for i := 0; i < len(path); i+=2 {
+				j += 1
+				if (j + 1) % increm != 0 {
+					lessPath = append(lessPath, path[i], path[i + 1])
+				}
+			}
+			path = lessPath
+		}
+		fmt.Println(path)
+		fmt.Println(len(path))
+		temp.Path = path
 		temp.Distance = responses[i].Distance*mtoMi
 		temp.Directions = nil
 		result = append(result, *temp)
@@ -923,3 +842,105 @@ func main() {
 	//fmt.Println("strava response below")
 	//ExecuteStravaRequest(input, distance, "10", 1.0, `d11fe6a257303cf24de1181586f335f86d24db88`)
 }
+	// best_distance_index := 0
+	// best_distance_difference := math.Abs(distance - responses[0].Distance)
+	// for i, resp := range responses {
+	// 	if math.Abs(distance-resp.Distance) < best_distance_difference {
+	// 		best_distance_index = i
+	// 		best_distance_difference = math.Abs(distance - resp.Distance)
+	// 	}
+	// }
+
+	//start := responses[0].StartLocation
+	//end := responses[0].EndLocation
+	// path := polylineToPath(responses[0].Polyline)
+	// fmt.Println(path)
+	// if (len(path) > (23 * 2)) {
+	// 	lessPath := make([]float64, 23 * 2)
+	// 	incr := len(path) / 2 / 23
+	// 	for i := 0; i < 46; i+=2 {
+	// 		lessPath[i] = path[i * incr]
+	// 		lessPath[i + 1] = path[i * incr + 1]
+	// 	}
+	// 	path = lessPath
+	// }
+	// resPaths := make([][]float64, len(responses))
+	// resStarts := make([][]float64, len(responses))
+	// resEnds := make([][]float64, len(responses))
+	// var resDists []float64
+	// for i := 0; i < len(responses); i++ {
+	// 	resPaths[i] = polylineToPath(responses[i].Polyline)
+	// 	resStarts[i] = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
+	// 	resEnds[i] = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
+	// 	resDists = append(resDists, responses[i].Distance*mtoMi)
+	// }
+	// fmt.Println(resPaths)
+	// fmt.Println(resStarts)
+	// fmt.Println(resEnds)
+	// fmt.Println(resDists)
+
+	//@Agam what does this do?
+	//it creates a 2d array of the appropriate size
+	// resPaths := make([][]float64, len(pathDetails))
+	// var resDists []float64
+
+	// var i int
+	// for _, elem := range pathDetails {
+	// 	fmt.Println(elem)
+	// 	resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
+	
+	// 	for _, pt := range pathDetails[i].path {
+	// 		curLat := pt.lat
+	// 		curLng := pt.lng
+	// 		resPaths[i] = append(resPaths[i], curLat, curLng)
+	// 	}
+	// 	resDists = append(resDists, pathDetails[i].distance)
+	// 	i++
+	// }
+
+	//given paths, origin, and desired distance, returns slice of all distance lengths and paths
+// func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
+// 	var allDists []DistAndPath
+// 	for _, v := range pathSlice {
+
+// 		totalDist := 0
+// 		prevLat := org.lat
+// 		prevLng := org.lng
+// 		overall_error := ``
+// 		for _, x := range v {
+// 			curLat := x.lat
+// 			curLng := x.lng
+// 			some, err  := distance(prevLat, prevLng, curLat, curLng)
+// 			if (err == ``) {
+// 				totalDist += some 
+// 			} else {
+// 				overall_error = err
+// 				break
+// 			}
+// 			prevLat = curLat
+// 			prevLng = curLng
+// 		}
+
+// 		some, err := distance(prevLat, prevLng, org.lat, org.lng)
+// 		totalDist += some
+
+// 		if (overall_error == `` && err == ``) {
+// 			// convert output in meters to miles
+// 			const mtoMi float64 = 0.00062137
+// 			//only includes paths which are at least the desired length
+// 			if float64(totalDist)*mtoMi > desired {
+// 				// if true {
+// 				temp := new(DistAndPath)
+// 				temp.distance = float64(totalDist) * mtoMi
+// 				temp.path = v
+// 				temp.desired = desired
+// 				allDists = append(allDists, *temp)
+// 			}
+// 		}
+
+// 	}
+
+// 	return allDists
+// }
+	//percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
+	//Outputs best path with distance and percent error
