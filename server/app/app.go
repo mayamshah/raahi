@@ -14,6 +14,7 @@ import (
 	"strings"
 	"github.com/strava/go.strava"
 	"sync"
+	"github.com/twpayne/go-polyline"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -690,8 +691,22 @@ func polylineToPath(polyline strava.Polyline) []float64 {
 	return path
 }
 
-func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *FullResponse {
+func pathToPolyline(path []float64) string {
+	var coords [][]float64
+	for i := 0; i < (len(path) / 2); i+=2 {
+		temp := []float64{path[i], path[i + 1]}
+		//fmt.Println(temp)
+		coords = append(coords, temp)
+	}
+	//fmt.Println(coords)
+	poly := fmt.Sprintf("%s", polyline.EncodeCoords(coords))
+	// fmt.Println(poly)
+	// tempo, _, _ := polyline.DecodeCoords([]byte(poly))
+	// fmt.Printf("%v\n", tempo)
+	return poly
+}
 
+func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *FullResponse {
 	//check to see if radius is a proper number
 	radius, err := strconv.ParseFloat(radius_string, 64)
 	if err != nil {
@@ -725,8 +740,8 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	if (error != ``) {
 		return getErrorResponse(error)
 	}
-	fmt.Println(top_right)
-	fmt.Println(bottom_left)
+	// fmt.Println(top_right)
+	// fmt.Println(bottom_left)
 	client := strava.NewClient(accessToken)
 	SegmentCall := strava.NewSegmentsService(client).Explore(bottom_left.lat, bottom_left.lng, top_right.lat, top_right.lng)
 	SegmentCall.ActivityType("running")
@@ -738,7 +753,7 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 		return getErrorResponse(fmt.Sprintf(`%s`, err))
 	}
 
-	fmt.Println(len(responses))
+	//fmt.Println(len(responses))
 
 	if len(responses) <= 0 {
 		return getErrorResponse(`No routes found`)
@@ -766,15 +781,17 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 		temp := new(ResponseNew)
 		temp.Org = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
 		temp.Dest = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
+		oLat := strconv.FormatFloat(temp.Org[0], 'f', 6, 64)
+		oLng := strconv.FormatFloat(temp.Org[1], 'f', 6, 64)
+		dLat := strconv.FormatFloat(temp.Dest[0], 'f', 6, 64)
+		dLng := strconv.FormatFloat(temp.Dest[1], 'f', 6, 64)
 		path := polylineToPath(responses[i].Polyline)
-		fmt.Println(path)
 		//limits to 23 waypoints
 		if (len(path) > (23 * 2)) {
 			var lessPath []float64
 			removeNum := len(path) / 2 - 23
 			increm := len(path) / 2 / removeNum
-			fmt.Println(removeNum)
-			fmt.Println(increm)
+			if increm == 1 { continue } //too many waypoints to handle (limiting to 23 would lose a lot of information about the route)
 			j := 0
 			for i := 0; i < len(path); i+=2 {
 				j += 1
@@ -784,14 +801,18 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 			}
 			path = lessPath
 		}
-		fmt.Println(path)
-		fmt.Println(len(path))
 		temp.Path = path
-		temp.Distance = responses[i].Distance*mtoMi
-		temp.Directions = nil
+		tempPolyline := pathToPolyline(path)
+		dirURL := "https://maps.googleapis.com/maps/api/directions/json?origin=" + oLat + "," + oLng + "&destination=" + dLat + "," + dLng + MODE + "&waypoints=via:enc:" + tempPolyline + ":" + KEY
+		dist, turnLocs, err := distanceHelp(dirURL)
+		if err != `` {
+			return getErrorResponse(`Error when getting directions`)
+		}
+		// temp.Distance = responses[i].Distance*mtoMi
+		temp.Distance = dist*mtoMi //we're returning a modified route we should return the appropriate distance
+		temp.Directions = turnLocs
 		result = append(result, *temp)
 	}
-	
 	return newFullResponse(result)
 
 }
@@ -881,20 +902,20 @@ func main() {
 	}
 
 	// ask for distance
-	fmt.Printf("Enter desired distance in miles\n")
+	//fmt.Printf("Enter desired distance in miles\n")
 
 	// read user input
-	var distance string
-	for scanner.Scan() {
-		distance = scanner.Text()
-		if strings.Contains(distance, "") {
-			break
-		}
-	}
-	// distance := "1"
-	execute_request(input, distance, 1.0)
+	// var distance string
+	// for scanner.Scan() {
+	// 	distance = scanner.Text()
+	// 	if strings.Contains(distance, "") {
+	// 		break
+	// 	}
+	// }
+	distance := "1"
+	//execute_request(input, distance, 1.0)
 	//fmt.Println("strava response below")
-	//ExecuteStravaRequest(input, distance, "10", 1.0, `d11fe6a257303cf24de1181586f335f86d24db88`)
+	ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
 }
 	// best_distance_index := 0
 	// best_distance_difference := math.Abs(distance - responses[0].Distance)
