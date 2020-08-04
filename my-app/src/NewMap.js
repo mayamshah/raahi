@@ -1,45 +1,72 @@
-/*global google*/
-import React from 'react'
-import { GoogleMap, LoadScript, DirectionsService, DirectionsRenderer } from '@react-google-maps/api'
+import React, { useState } from 'react'
+import { GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api'
 
-class Directions extends React.Component {
-  constructor (props) {
-    super(props)
 
-    this.state = {
-      response: null,
-      travelMode: 'DRIVING',
-      origin: new google.maps.LatLng(this.props.response.Org[0], this.props.response.Org[1]),
-      destination: new google.maps.LatLng(this.props.response.Dest[0], this.props.response.Dest[1]),
+function LatLng(lat, lng) {
+  return {lat: lat, lng: lng};
+}
+function createWayPoints(org) {
+
+    var waypoints = []
+    var i = 0
+    for (i = 0; i < org.length && i < 46; i = i + 2) {
+      waypoints.push({location: LatLng(org[i], org[i+1]), stopover: false})
     }
 
-    this.directionsCallback = this.directionsCallback.bind(this)
-    this.onMapClick = this.onMapClick.bind(this)
-  }
+    return waypoints
+}
 
-  directionsCallback (response) {
+function DirectionsNew(props) {
+    
+    const [current_response, setResponse] = useState({});
+
+    // const state = React.memo(props => {
+
+    //   return  {
+    //             response: null,
+    //             travelMode: 'WALKING',
+    //             origin: "12543 Palmtag Drive, Saratoga, CA",
+    //             destination: "12546 Palmtag Drive, Saratoga, CA",
+    //           };
+    //   });
+
+    const state = {
+                response: null,
+                travelMode: 'WALKING',
+                origin: LatLng(props.response.Org[0], props.response.Org[1]),
+                destination: LatLng(props.response.Dest[0], props.response.Dest[1]),
+                waypoints: createWayPoints(props.response.Path)
+              };
+
+  // shouldComponentUpdate(nextProps, nextState){
+  //   if (nextProps.response.Org[0] === this.props.response.Org[0] || this.state.response != null || this.state.response == nextState.response) {
+  //     console.log("entered");
+  //     return false 
+  //   }
+  //   return true
+  // }
+
+  function directionsCallback(response) {
     console.log("callback")
     console.log(response)
 
-    if (response !== null) {
+    if (response !== null && current_response.status == null) {
       if (response.status === 'OK') {
-        this.setState(
-          () => ({
-            response
-          })
-        )
+        console.log("inside")
+        setResponse(response)
       } else {
         console.log('response: ', response)
       }
     }
   }
 
-  onMapClick (...args) {
+  function onMapClick(...args) {
     console.log('onClick args: ', args)
   }
 
-  render () {
     return (
+      console.log("return"),
+      <div>
       <div className='map'>
         <div className='map-settings'>
           <hr className='mt-0 mb-3' />
@@ -63,7 +90,7 @@ class Directions extends React.Component {
               lng: -180
             }}
             // optional
-            onClick={this.onMapClick}
+            onClick={onMapClick}
             // optional
             onLoad={map => {
               console.log('DirectionsRenderer onLoad map: ', map)
@@ -77,14 +104,16 @@ class Directions extends React.Component {
                 <DirectionsService
                   // required
                   options={{ 
-                    destination: this.state.destination,
-                    origin: this.state.origin,
-                    travelMode: this.state.travelMode
+                    destination: state.destination,
+                    origin: state.origin,
+                    travelMode: state.travelMode,
+                    waypoints: state.waypoints
                   }}
                   // required
-                  callback={this.directionsCallback}
+                  callback={directionsCallback}
                   // optional
                   onLoad={directionsService => {
+                    console.log(state);
                     console.log('DirectionsService onLoad directionsService: ', directionsService)
                   }}
                   // optional
@@ -94,15 +123,16 @@ class Directions extends React.Component {
                 />
 
             {
-              this.state.response !== null && (
+              current_response !== null && (
                 <DirectionsRenderer
                   // required
                   options={{ 
-                    directions: this.state.response
+                    directions: current_response
                   }}
                   // optional
                   onLoad={directionsRenderer => {
                     console.log('DirectionsRenderer onLoad directionsRenderer: ', directionsRenderer)
+
                   }}
                   // optional
                   onUnmount={directionsRenderer => {
@@ -114,8 +144,11 @@ class Directions extends React.Component {
           </GoogleMap>
         </div>
       </div>
+    </div>
     )
-  }
+  
 }
 
-export default Directions
+
+
+export default DirectionsNew

@@ -6,6 +6,7 @@ import Button from '@material-ui/core/Button';
 import axios from "axios";
 import MyMapComponent from "./MyMapComponent.js"
 import DirectionsViewer from "./DirectionsViewer.js"
+import NewDirectionsViewer from "./NewDirectionsViewer.js"
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -14,7 +15,8 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import Paper from '@material-ui/core/Paper';
 import Fade from '@material-ui/core/Fade';
-import Directions from "./NewMap.js"
+import DirectionsNew from "./NewMap.js";
+import {LoadScript} from '@react-google-maps/api';
 import './title.css';
 
 
@@ -113,6 +115,7 @@ function Display() {
         if (res.data.Error == '') {
           console.log("No error")
           setResult(res.data.Results)
+          console.log(res.data.Results[currentIndex].Directions);
           setCurrentIndex(0)
           setShow(true)
         } else {
@@ -174,6 +177,8 @@ function Display() {
   }
 
   function buttonShowDirections() {
+    console.log("show directions");
+    console.log(result[currentIndex].Directions);
     setShowDirections(true)
   }
 
@@ -181,6 +186,13 @@ function Display() {
     setOpen(false);
   };
 
+
+  const Something = React.memo(props =>
+  {
+    console.log("render")
+    console.log(props.response)
+    return <DirectionsNew response = {props.response}/>;
+  });
 
   return (
     <div className={classes.overall_layout}>
@@ -206,12 +218,14 @@ function Display() {
         </Button>
       </Paper>
     </main>
-    {show &&  <Directions response = {result[currentIndex]}/> }
-    {false &&
+    <LoadScript
+        googleMapsApiKey="AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
+      >
+    {show &&
       <main className={classes.map_layout}>
         <Fade in={show}>
             <Paper className={classes.paper}>
-            <MyMapComponent response = {result[currentIndex]} />
+            <Something response = {result[currentIndex]}/>
             <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
             {result[currentIndex].Distance.toString() + " mile route"}
             </Typography>
@@ -231,10 +245,11 @@ function Display() {
     {showDirections &&
       <main className={classes.directions_layout}>
           <Paper className={classes.paper}>
-            <DirectionsViewer steps={result[currentIndex].Directions}/>
+            <NewDirectionsViewer steps={result[currentIndex].Directions}/>
           </Paper>
        </main>
      }
+    </LoadScript>
     <main>
       {loading &&
         <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
