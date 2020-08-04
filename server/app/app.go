@@ -1,14 +1,14 @@
-package main
+package app
 
 import (
-	"bufio"
+	// "bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 
-	"os"
+	// "os"
 	"sort"
 	"strconv"
 	"strings"
@@ -813,6 +813,7 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 		temp.Directions = turnLocs
 		result = append(result, *temp)
 	}
+	fmt.Println(result)
 	return newFullResponse(result)
 
 }
@@ -829,17 +830,17 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
 	// get token from python client 
-	resp, err := api_request("http://localhost:5000/token")
+	// resp, err := api_request("http://localhost:5000/token")
 
-	if (err != ``) {
-		json.NewEncoder(w).Encode(getErrorResponse(err))
-		return
-	}
+	// if (err != ``) {
+	// 	json.NewEncoder(w).Encode(getErrorResponse(err))
+	// 	return
+	// }
 
-	var resp_body TokenResposne
-	json.Unmarshal(resp, &resp_body)
+	// var resp_body TokenResposne
+	// json.Unmarshal(resp, &resp_body)
 
-	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, resp_body.AccessToken)
+	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
 	json.NewEncoder(w).Encode(StravaResponse)
 }
 
@@ -884,39 +885,39 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func main() {
+// func main() {
 
-	// setup the scanner
-	scanner := bufio.NewScanner(os.Stdin)
+// 	// setup the scanner
+// 	scanner := bufio.NewScanner(os.Stdin)
 
-	//ask for address
-	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
+// 	//ask for address
+// 	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
 
-	//read user input
-	var input string
-	for scanner.Scan() {
-		input = scanner.Text()
-		if strings.Contains(input, "") {
-			break
-		}
-	}
+// 	//read user input
+// 	var input string
+// 	for scanner.Scan() {
+// 		input = scanner.Text()
+// 		if strings.Contains(input, "") {
+// 			break
+// 		}
+// 	}
 
-	// ask for distance
-	//fmt.Printf("Enter desired distance in miles\n")
+// 	// ask for distance
+// 	//fmt.Printf("Enter desired distance in miles\n")
 
-	// read user input
-	// var distance string
-	// for scanner.Scan() {
-	// 	distance = scanner.Text()
-	// 	if strings.Contains(distance, "") {
-	// 		break
-	// 	}
-	// }
-	distance := "1"
-	//execute_request(input, distance, 1.0)
-	//fmt.Println("strava response below")
-	ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
-}
+// 	// read user input
+// 	// var distance string
+// 	// for scanner.Scan() {
+// 	// 	distance = scanner.Text()
+// 	// 	if strings.Contains(distance, "") {
+// 	// 		break
+// 	// 	}
+// 	// }
+// 	distance := "1"
+// 	//execute_request(input, distance, 1.0)
+// 	//fmt.Println("strava response below")
+// 	ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
+// }
 	// best_distance_index := 0
 	// best_distance_difference := math.Abs(distance - responses[0].Distance)
 	// for i, resp := range responses {
