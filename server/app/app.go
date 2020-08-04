@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"github.com/strava/go.strava"
+	"sync"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -319,23 +320,29 @@ func get_offset(point Point) float64 {
 
 //Given an origin, desired distance, number of different routes it wants and a function that
 //determines the shape of the route, returns a list of possible routes
-func create_routes(point Point, distance float64, num float64, make_route make_route) [][]Point {
-	angle_increase := 360 / num
+func create_routes(point Point, distance float64, numb float64, routeFunction make_route) [][]Point {
+	fmt.Println("Starting to create routes")
+	angle_increase := 360 / numb
+	num := int(numb)
 	//seems to me like it works better without offset
 	//offset := get_offset(point)
-	offset := 0.0
+	// offset := 0.0
 	var routes [][]Point
-
-	for i := 0.0; i < num; i = i + 1.0 {
-		route := make_route(point, distance, offset)
-		if (len(route) > 0) {
-			routes = append(routes, route)
-		}
-		offset += angle_increase
-		if (offset > 360) {
-			offset = offset - 360
-		}
+	var wg sync.WaitGroup
+	wg.Add(num)
+	for i := 0; i < num; i++ {
+		// fmt.Println(offset)
+		// fmt.Println(i * angle_increase)
+		go func(i int) {
+			defer wg.Done()
+			route := routeFunction(point, distance, float64(i) * angle_increase)
+			if (len(route) > 0) {
+				routes = append(routes, route)
+			}
+		} (i)
 	}
+	wg.Wait()
+	fmt.Println("Finished creating routes")
 	return routes
 }
 
@@ -464,7 +471,7 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 	return 0.0, result, resp_body.Status
 }
 
-func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
+func get_distance_sequential(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
 	var allDists []DistAndPath
 	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
 	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
@@ -497,6 +504,52 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPat
 			}
 		}
 	}
+	return allDists, sumDist / float64(len(pathSlice))
+}
+
+func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
+	var allDists []DistAndPath
+	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
+	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
+	sumDist := 0.0
+	numPaths := len(pathSlice)
+	fmt.Println("Starting to get distances")
+	var wg sync.WaitGroup
+	wg.Add(numPaths)
+
+	for i := 0; i < numPaths; i++ {
+		go func (i int) {
+			defer wg.Done()
+			tempUrl := "https://maps.googleapis.com/maps/api/directions/json?origin=" + oLat + "," + oLng + "&destination=" + oLat + "," + oLng + MODE + "&waypoints="
+			for _, x := range pathSlice[i] {
+				cLat := strconv.FormatFloat(x.lat, 'f', 6, 64)
+				cLng := strconv.FormatFloat(x.lng, 'f', 6, 64)
+				tempUrl = tempUrl + "via:" + cLat + "," + cLng + "|"
+			}
+			tempUrl = strings.TrimSuffix(tempUrl, "|")
+			url := tempUrl + KEY
+			dist, turnLocs, err := distanceHelp(url)
+			// fmt.Println(turnLocs)
+			// fmt.Println(dist * 0.00062137, "for above turns")
+			if (err == ``) {
+				// convert output in meters to miles
+				const mtoMi float64 = 0.00062137
+				distMi := dist * mtoMi
+				sumDist += distMi
+				//only includes paths which are at least the desired length and at most desired length + 1 mi
+				if ((distMi > desired) && (distMi < (desired + 1))) {
+					temp := new(DistAndPath)
+					temp.distance = distMi
+					temp.path = pathSlice[i]
+					temp.desired = desired
+					temp.turns = turnLocs
+					allDists = append(allDists, *temp)
+				}
+			}
+		} (i)
+	}
+	wg.Wait()
+	fmt.Println("Finished getting distances")
 	return allDists, sumDist / float64(len(pathSlice))
 }
 
@@ -599,6 +652,7 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 			temp.Path = append(temp.Path, pt.lat, pt.lng)
 		}
 		temp.Distance = pathDetails[i].distance
+		fmt.Println(temp.Distance)
 		temp.Directions = pathDetails[i].turns
 		result = append(result, *temp)
 	}
@@ -811,7 +865,7 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	//setup the scanner
+	// setup the scanner
 	scanner := bufio.NewScanner(os.Stdin)
 
 	//ask for address
