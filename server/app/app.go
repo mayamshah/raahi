@@ -462,8 +462,8 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			turnLocs.Instructions = v.Html_Instructions
 			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
 			turnLocs.Loc = temp
-			angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
-			turnLocs.Angle = angle
+			// angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
+			turnLocs.Angle = 0.0
 			result = append(result, *turnLocs)
 		}
 		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
@@ -813,7 +813,9 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 		temp.Directions = turnLocs
 		result = append(result, *temp)
 	}
-	fmt.Println(result)
+	if len(result) <= 0 {
+		return getErrorResponse(`No displayable routes found`)
+	}
 	return newFullResponse(result)
 
 }
