@@ -880,7 +880,25 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 	temp.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
 
-	response := newFullResponse([]ResponseNew{*temp})
+
+
+	temp2 := new(ResponseNew)
+	temp2.Org = []float64{37.2862852, -122.0081542}
+	temp2.Dest = []float64{37.2862852, -122.0081542}
+	temp2.Path = []float64{37.2866, -122.01331, 37.28257, -122.01174, 37.28244, -122.00863}
+	temp2.Distance = 1.39870387
+
+	temp2.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+
+	temp3 := new(ResponseNew)
+	temp3.Org = []float64{37.2862852, -122.0081542}
+	temp3.Dest = []float64{37.2862852, -122.0081542}
+	temp3.Path = []float64{37.28352, -122.01188, 37.28181, -122.00754, 37.2837, -122.00532}
+	temp3.Distance = 1.39870387
+
+	temp3.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+
+	response := newFullResponse([]ResponseNew{*temp, *temp2, *temp3})
 	fmt.Println(response)
 
 	json.NewEncoder(w).Encode(response)
