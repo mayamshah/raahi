@@ -17,6 +17,7 @@ import Paper from '@material-ui/core/Paper';
 import Fade from '@material-ui/core/Fade';
 import DirectionsNew from "./NewMap.js";
 import {LoadScript} from '@react-google-maps/api';
+import Grid from '@material-ui/core/Grid';
 import './title.css';
 
 
@@ -85,7 +86,40 @@ const useStyles = makeStyles((theme) => ({
   button: {
     margin: theme.spacing(3,0,0,3),
   },
+  root_grid: {
+    flexGrow: 1,
+  },
+  paper_grid: {
+    padding: theme.spacing(1),
+    textAlign: 'center',
+    color: theme.palette.text.secondary,
+  },
 }));
+
+function NestedGrid(props) {
+  const classes = useStyles();
+  const results = props.response
+  const mapClicked = props.onClick
+
+  const Something = React.memo(props =>
+  {
+    console.log("render")
+    console.log(props.response)
+    return <DirectionsNew response = {props.response} onClick={props.onClick}/>;
+  });
+
+  return (
+    <div className={classes.root_grid}>
+      <Grid container spacing={1}>
+      {props.response.map((res, index) => (
+        <Grid item xs={4}>
+          <Something response = {res} onClick= {() => mapClicked(index)}/>
+        </Grid>
+      ))}
+      </Grid>
+    </div>
+  );
+}
 
 function Display() {
   const classes = useStyles();
@@ -97,6 +131,7 @@ function Display() {
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
+  const [gridView, setGridView] = useState(false);
   const [loading, setLoading] = useState(false);
 
 
@@ -178,8 +213,26 @@ function Display() {
 
   function buttonShowDirections() {
     console.log("show directions");
-    console.log(result[currentIndex].Directions);
     setShowDirections(true)
+  }
+
+  function buttonGridView() {
+    console.log("gridView");
+    setGridView(true);
+    setShow(false);
+  }
+
+  function normalView() {
+    setShow(true);
+    setGridView(false);
+  }
+
+  function mapClicked(index) {
+    console.log("map clicked");
+    console.log(index)
+    setCurrentIndex(index)
+    setGridView(false)
+    setShow(true)
   }
 
   const handleClose = () => {
@@ -191,7 +244,7 @@ function Display() {
   {
     console.log("render")
     console.log(props.response)
-    return <DirectionsNew response = {props.response}/>;
+    return <DirectionsNew response = {props.response} onClick= {props.onClick} />;
   });
 
   return (
@@ -225,7 +278,7 @@ function Display() {
       <main className={classes.map_layout}>
         <Fade in={show}>
             <Paper className={classes.paper}>
-            <Something response = {result[currentIndex]}/>
+            <Something response = {result[currentIndex]} onClick= {() => mapClicked()}/>
             <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
             {result[currentIndex].Distance.toString() + " mile route"}
             </Typography>
@@ -238,8 +291,21 @@ function Display() {
             <Button className={classes.button} onClick={() => buttonShowDirections()} variant="contained" color="primary" >
             Show Directions
             </Button>
+            <Button className={classes.button} onClick={() => buttonGridView()} variant="contained" color="primary" >
+            GridView
+            </Button>
             </Paper>
         </Fade>
+      </main>
+    }
+    {gridView && 
+      <main className={classes.map_layout}>
+        <Paper className={classes.paper}>
+        <NestedGrid response= {result} onClick={mapClicked}/>
+        <Button className={classes.button} onClick={() => normalView()} variant="contained" color="primary" >
+            Normal View
+        </Button>
+        </Paper>
       </main>
     }
     {showDirections &&

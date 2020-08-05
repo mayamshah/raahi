@@ -38,6 +38,8 @@ function DirectionsNew(props) {
                 waypoints: createWayPoints(props.response.Path)
               };
 
+  const onMapClick = props.onClick
+
   // shouldComponentUpdate(nextProps, nextState){
   //   if (nextProps.response.Org[0] === this.props.response.Org[0] || this.state.response != null || this.state.response == nextState.response) {
   //     console.log("entered");
@@ -60,9 +62,9 @@ function DirectionsNew(props) {
     }
   }
 
-  function onMapClick(...args) {
-    console.log('onClick args: ', args)
-  }
+  // function onMapClick(...args) {
+  //   console.log('onClick args: ', args)
+  // }
 
     return (
       console.log("return"),
