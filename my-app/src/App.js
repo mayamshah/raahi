@@ -273,6 +273,7 @@ function Display() {
     </main>
     <LoadScript
         googleMapsApiKey="AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
+        libraries={["geometry"]}
       >
     {show &&
       <main className={classes.map_layout}>
