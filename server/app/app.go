@@ -607,6 +607,7 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 	var result []ResponseNew
 	for i := 0; i < len(pathDetails); i++ {
 		go func (i int) {
+			defer wg.Done()
 			temp := new(ResponseNew)
 			temp.Org = append(temp.Org, origin.lat, origin.lng)
 			temp.Dest = append(temp.Dest, origin.lat, origin.lng)
