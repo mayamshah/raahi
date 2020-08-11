@@ -371,7 +371,7 @@ function App() {
     <React.Fragment>
       <CssBaseline />
         <Typography className="title.body" component="h1" variant="h4" align="center">
-          Rahi
+          Raahi
         </Typography>
         <Display/>
     </React.Fragment>
