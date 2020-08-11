@@ -170,7 +170,7 @@ type LocOfTurn struct {
 	Turn 			string
 	Instructions 	string
 	Loc				[]float64
-	Angle			float64
+	EndLoc 			[]float64
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -461,9 +461,10 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			turnLocs.Turn = v.Maneuver
 			turnLocs.Instructions = v.Html_Instructions
 			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
+			tempEnd := []float64{v.LocStepEnd.Lat, v.LocStepEnd.Lng}
 			turnLocs.Loc = temp
 			// angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
-			turnLocs.Angle = 0.0
+			turnLocs.EndLoc = tempEnd
 			result = append(result, *turnLocs)
 		}
 		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
