@@ -1,9 +1,18 @@
+/*global google*/
 import React, { useState } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { GoogleMap, StreetViewPanorama} from '@react-google-maps/api'
 import ListItem from '@material-ui/core/ListItem';
 import Button from '@material-ui/core/Button';
 
+
+function getHeading(lat1, lng1, lat2, lng2) {
+  var point1 = new google.maps.LatLng(lat1, lng1)
+  var point2 = new google.maps.LatLng(lat2, lng2)
+  var heading = google.maps.geometry.spherical.computeHeading(point1, point2)
+  console.log(heading)
+  return heading;
+}
 
 function StreetView(props) {
 	const mapContainerStyle = {
@@ -14,7 +23,12 @@ function StreetView(props) {
 	const center = {
 	  lat:  props.location[0],
 	  lng: props.location[1]
-	};
+  };
+  
+  const headingInfo = {
+    heading: getHeading(props.location[0], props.location[1], props.locEnd[0], props.locEnd[1]),
+    pitch: 0
+  };
 
 	return (
 		<GoogleMap
@@ -25,7 +39,8 @@ function StreetView(props) {
 			  >
 			    <StreetViewPanorama
 			      position={center}
-			      visible={true}
+            visible={true}
+            pov={headingInfo}
 			    />
 	  	</GoogleMap>
 	  	);
@@ -73,7 +88,7 @@ return (
         <Button className={classes.button} onClick={() => getPreviousStep()} variant="contained" color="primary" >
           Previous Step
         </Button>
-        <StreetView location={steps.steps[currentIndex].Loc}/>
+        <StreetView location={steps.steps[currentIndex].Loc} locEnd={steps.steps[currentIndex].EndLoc} />
   	</div>
   );
 
