@@ -18,6 +18,7 @@ import Fade from '@material-ui/core/Fade';
 import DirectionsNew from "./NewMap.js";
 import {LoadScript} from '@react-google-maps/api';
 import Grid from '@material-ui/core/Grid';
+import getDirections from './DirectionsExporter.js'
 import './title.css';
 
 
@@ -191,29 +192,71 @@ function Display() {
 
   function handleAddress(e) {
     setShow(false)
+    setShowDirections(false)
     setCurrentAddress(e.target.value)
   }
 
   function handleMiles(e) {
     setShow(false)
+    setShowDirections(false)
     setCurrentMiles(e.target.value)
   }
 
   function nextResult() {
     if (currentIndex < result.length - 1) {
       setCurrentIndex(currentIndex+1)
+      setShowDirections(false)
     }
   }
 
   function prevResult() {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1)
+      setShowDirections(false)
     }
   }
 
   function buttonShowDirections() {
     console.log("show directions");
     setShowDirections(true)
+  }
+
+  function makeWaypoints(org) {
+    var waypoints = []
+    var i = 0
+    for (i = 0; i < org.length && i < 46; i = i + 2) {
+      waypoints.push({latitude: org[i], longitude: org[i+1]})
+    }
+
+    return waypoints
+  }
+  function buttonExportDirections() {
+    const data = {
+      source: {
+        latitude: -33.8356372,
+        longitude: 18.6947617
+      },
+      destination: {
+        latitude: -33.8600024,
+        longitude: 18.697459
+      },
+      params: [
+        {
+          key: "travelmode",
+          value: "walking"        // may be "walking", "bicycling" or "transit" as well
+        },
+        {
+          key: "dir_action",
+          value: "navigate"       // this instantly initializes navigation using the given travel mode
+        }
+      ], 
+      waypoints: []}
+    data.source.latitude = result[currentIndex].Org[0]
+    data.source.longitude = result[currentIndex].Org[1]
+    data.destination.latitude = result[currentIndex].Dest[0]
+    data.destination.longitude = result[currentIndex].Dest[1]
+    data.waypoints = makeWaypoints(result[currentIndex].Path)
+    getDirections(data)
   }
 
   function buttonGridView() {
@@ -291,14 +334,17 @@ function Display() {
             <Button className={classes.button} onClick={() => buttonShowDirections()} variant="contained" color="primary" >
             Show Directions
             </Button>
-            <Button className={classes.button} onClick={() => buttonGridView()} variant="contained" color="primary" >
-            GridView
+            <Button className={classes.button} onClick={() => buttonExportDirections()} variant="contained" color="primary" >
+            Export Directions
             </Button>
+            { false && <Button className={classes.button} onClick={() => buttonGridView()} variant="contained" color="primary" >
+            GridView
+            </Button> }
             </Paper>
         </Fade>
       </main>
     }
-    {gridView && 
+    {false && 
       <main className={classes.map_layout}>
         <Paper className={classes.paper}>
         <NestedGrid response= {result} onClick={mapClicked}/>
