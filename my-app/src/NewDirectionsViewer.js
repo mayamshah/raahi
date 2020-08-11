@@ -1,17 +1,15 @@
+/*global google*/
 import React, { useState } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { GoogleMap, StreetViewPanorama} from '@react-google-maps/api'
 import ListItem from '@material-ui/core/ListItem';
 import Button from '@material-ui/core/Button';
 
-function LatLng(lat, lng) {
-  return {lat: lat, lng: lng};
-}
 
 function getHeading(lat1, lng1, lat2, lng2) {
-  var point1 = LatLng(lat1, lng1)
-  var point2 = LatLng(lat2, lng2)
-  var heading = computeHeading(point1, point2)
+  var point1 = new google.maps.LatLng(lat1, lng1)
+  var point2 = new google.maps.LatLng(lat2, lng2)
+  var heading = google.maps.geometry.spherical.computeHeading(point1, point2)
   console.log(heading)
   return heading;
 }
@@ -27,10 +25,10 @@ function StreetView(props) {
 	  lng: props.location[1]
   };
   
-  // const headingInfo = {
-  //   heading: getHeading(props.location[0], props.location[1], props.locEnd[0], props.locEnd[1]),
-  //   pitch: 0
-  // };
+  const headingInfo = {
+    heading: getHeading(props.location[0], props.location[1], props.locEnd[0], props.locEnd[1]),
+    pitch: 0
+  };
 
 	return (
 		<GoogleMap
@@ -42,7 +40,7 @@ function StreetView(props) {
 			    <StreetViewPanorama
 			      position={center}
             visible={true}
-            //pov={headingInfo}
+            pov={headingInfo}
 			    />
 	  	</GoogleMap>
 	  	);
