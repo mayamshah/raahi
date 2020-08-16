@@ -70,19 +70,14 @@ function DirectionsNew(props) {
       console.log("return"),
       <div>
       <div className='map'>
-        <div className='map-settings'>
-          <hr className='mt-0 mb-3' />
-
-        </div>
-
         <div className='map-container'>
           <GoogleMap
             // required
             id='direction-example'
             // required
             mapContainerStyle={{
-              height: '400px',
-              width: '100%'
+              height: '350px',
+              width: '400px',
             }}
             // required
             zoom={2}
