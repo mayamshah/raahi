@@ -21,6 +21,8 @@ const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
 const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
 const NEAREST_RODE_URL = "https://roads.googleapis.com/v1/nearestRoads?points="
+const TRAILS_URL = "https://www.trailrunproject.com/data/get-trails?lat="
+const TRPKEY = "&key=200872374-da245a0b782e30b71d825d92027d8012"
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
@@ -173,6 +175,20 @@ type LocOfTurn struct {
 	EndLoc 			[]float64
 }
 
+type Trails struct {
+	Name		string		`json:"name"`
+	Summary		string		`json:"summary"`
+	Location	string		`json:"location"`
+	Distance	float64		`json:"length"`
+	Lat			float64		`json:"latitude"`
+	Lon			float64		`json:"longitude"`
+}
+
+type TrailsResp struct {
+	Trails 		[]Trails	`json:"trails"`
+	Success		int			`json:"success"`
+}
+
 type make_route func(point Point, distance float64, offset float64) []Point
 
 //creates a new point
@@ -276,6 +292,19 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 	return NewPoint(resLat, resLng), ``
 
 
+}
+
+func getTrails(org Point) string {
+	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxResults=8&maxDistance=10" + TRPKEY
+	response, err := api_request(url)
+
+	if (err != ``) {
+		return err
+	}
+	var resp_body TrailsResp
+	json.Unmarshal(response, &resp_body)
+	fmt.Println(resp_body)
+	return `OK`
 }
 
 // given an origin, distance and angle, finds the corresponding point
@@ -601,6 +630,9 @@ func execute_request(input string, distance_string string) *FullResponse {
 	lat, lng := extract_coordinates(response)
 	origin := NewPoint(lat, lng)
 	fmt.Println(origin)
+
+	getTrails(origin)
+	return getErrorResponse(`hey`)
 
 	ogFix := getOGFix(origin)
 	fmt.Println(ogFix)
