@@ -1,14 +1,14 @@
-package app
+package main
 
 import (
-	// "bufio"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 
-	// "os"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -538,10 +538,43 @@ func newFullResponse(results []ResponseNew) *FullResponse {
 	return this
 }
 
+func getOGFixHex(org Point) float64 {
+	p0, err_0 := get_point(org, .5, 0.0, true)
+	p1, err_1 := get_point(org, .5, 60.0, true)
+	p2, err_2 := get_point(org, .5, 120.0, true)
+	p3, err_3 := get_point(org, .5, 180.0, true)
+	p4, err_4 := get_point(org, .5, 240.0, true)
+	p5, err_5 := get_point(org, .5, 300.0, true)
+	if (err_0 != `` || err_1 != `` || err_2 != `` || err_3 != `` || err_4 != `` || err_5 != ``) {
+		return 1.0
+	}
+	var ptRoute [][]Point
+	ptRoute = append(ptRoute, []Point{p1, p2, p3, p4, p5})
+	_, avg := get_distance(ptRoute, p0, 3.0)
+	fmt.Println(avg)
+	return 3.0 / avg
+}
+
+func getOGFix(org Point) float64 {
+	p0, err_0 := get_point(org, .707107, 45.0, true)
+	p1, err_1 := get_point(org, .707107, 135.0, true)
+	p2, err_2 := get_point(org, .707107, 225.0, true)
+	p3, err_3 := get_point(org, .707107, 315.0, true)
+
+	if (err_0 != `` || err_1 != `` || err_2 != `` || err_3 != ``) {
+		return 1.0
+	}
+	var ptRoute [][]Point
+	ptRoute = append(ptRoute, []Point{p1, p2, p3})
+	_, avg := get_distance(ptRoute, p0, 4.0)
+	fmt.Println(avg)
+	return 4.0 / avg
+}
+
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string, error_fix float64) *FullResponse {
+func execute_request(input string, distance_string string) *FullResponse {
 	var routeOrder []make_route
-	routeOrder = append(routeOrder, square_route, square_route, equilateral_triangle, equilateral_triangle, right_triangle, right_triangle, right_triangleOther, right_triangleOther, straight_line, straight_line)
+	routeOrder = append(routeOrder, equilateral_triangle, equilateral_triangle, right_triangle, right_triangle, right_triangleOther, right_triangleOther, square_route, square_route, straight_line, straight_line)
 	//convert distance to float64
 	//check to see if distance is a proper number
 	distance, err := strconv.ParseFloat(distance_string, 64)
@@ -569,13 +602,15 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 	origin := NewPoint(lat, lng)
 	fmt.Println(origin)
 
+	ogFix := getOGFix(origin)
+	fmt.Println(ogFix)
 	//get the possible routes
-	routes := create_routes(origin, distance*(error_fix), 8.0, routeOrder[0])
+	routes := create_routes(origin, distance*(ogFix), 8.0, routeOrder[0])
 
 	desired := distance
 	pathDetails, avgDist := get_distance(routes, origin, float64(desired))
 	fmt.Println(avgDist)
-	error_fix = desired / avgDist
+	error_fix := desired / avgDist
 	fmt.Println(error_fix)
 	attempts := 0
 	for len(pathDetails) < 8 {
@@ -590,7 +625,7 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 			error_fix = 1.0
 		}
 		fmt.Println("with error fix of", error_fix)
-		routes = create_routes(origin, distance*(error_fix), 8.0, routeOrder[attempts])
+		routes = create_routes(origin, distance*(error_fix)*(ogFix), 8.0, routeOrder[attempts])
 		morePaths, avgDist := get_distance(routes, origin, float64(desired))
 		fmt.Println(avgDist, desired)
 		error_fix = desired / avgDist
@@ -625,7 +660,13 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 
 	//sorts difference desired distance from path distance from least to greatest
 	sort.SliceStable(result, func(i, j int) bool {
-		return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
+		if len(result[i].Path) > 1 && len(result[j].Path) > 1 {
+			return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
+		}
+		if len(result[i].Path) == 1 && len(result[j].Path) == 1 {
+			return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
+		}
+		return len(result[i].Path) > len(result[i].Path)
 	})
 
 
@@ -651,7 +692,7 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	//path, distance, percent_error, err := execute_request(req.Address, req.Distance, 1.0)
 	//json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
-	if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance, 1.0)); err != nil {
+	if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance)); err != nil {
 		json.NewEncoder(w).Encode(getErrorResponse(fmt.Sprintf(`%s`, err)))
 	}
 }
@@ -893,39 +934,39 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// func main() {
+func main() {
 
-// 	// setup the scanner
-// 	scanner := bufio.NewScanner(os.Stdin)
+	// setup the scanner
+	scanner := bufio.NewScanner(os.Stdin)
 
-// 	//ask for address
-// 	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
+	//ask for address
+	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
 
-// 	//read user input
-// 	var input string
-// 	for scanner.Scan() {
-// 		input = scanner.Text()
-// 		if strings.Contains(input, "") {
-// 			break
-// 		}
-// 	}
+	//read user input
+	var input string
+	for scanner.Scan() {
+		input = scanner.Text()
+		if strings.Contains(input, "") {
+			break
+		}
+	}
 
-// 	// ask for distance
-// 	// fmt.Printf("Enter desired distance in miles\n")
+	// ask for distance
+	// fmt.Printf("Enter desired distance in miles\n")
 
-// 	// read user input
-// 	// var distance string
-// 	// for scanner.Scan() {
-// 	// 	distance = scanner.Text()
-// 	// 	if strings.Contains(distance, "") {
-// 	// 		break
-// 	// 	}
-// 	// }
-// 	distance := "1"
-// 	execute_request(input, distance, 1.0)
-// 	fmt.Println("strava response below")
-// 	//ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
-// }
+	// read user input
+	// var distance string
+	// for scanner.Scan() {
+	// 	distance = scanner.Text()
+	// 	if strings.Contains(distance, "") {
+	// 		break
+	// 	}
+	// }
+	distance := "15"
+	execute_request(input, distance)
+	fmt.Println("strava response below")
+	//ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
+}
 	// best_distance_index := 0
 	// best_distance_difference := math.Abs(distance - responses[0].Distance)
 	// for i, resp := range responses {
