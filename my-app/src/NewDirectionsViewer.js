@@ -4,6 +4,12 @@ import { makeStyles } from '@material-ui/core/styles';
 import { GoogleMap, StreetViewPanorama} from '@react-google-maps/api'
 import ListItem from '@material-ui/core/ListItem';
 import Button from '@material-ui/core/Button';
+import { Box } from '@material-ui/core';
+import Paper from '@material-ui/core/Paper';
+import List from '@material-ui/core/List';
+
+
+
 
 
 function getHeading(lat1, lng1, lat2, lng2) {
@@ -55,6 +61,13 @@ const useStyles = makeStyles((theme) => ({
   button: {
     margin: theme.spacing(3,0,0,3),
   },
+  np_button: {
+    margin: theme.spacing(0,1,1,0)
+  },
+   paper: {
+    height: 400,
+    width: 200,
+  },
 }));
 
 
@@ -76,19 +89,36 @@ function NewDirectionsViewer(steps) {
       }
     }
 
+    function changeStep(index){
+      setCurrentIndex(index)
+    }
+
 return (
 
 	<div>
-        <ListItem>
-        <div dangerouslySetInnerHTML={{__html: steps.steps[currentIndex].Instructions}} />
-        </ListItem>
-        <Button className={classes.button} onClick={() => getNextStep()} variant="contained" color="primary" >
-          Next Step
-        </Button>
-        <Button className={classes.button} onClick={() => getPreviousStep()} variant="contained" color="primary" >
-          Previous Step
-        </Button>
-        <StreetView location={steps.steps[currentIndex].Loc} locEnd={steps.steps[currentIndex].EndLoc} />
+        <Box alignItems="center" justifyContent="center" display="flex" >
+          {steps.steps && 
+            <Paper style={{maxHeight: 400, overflow: 'auto', height:400}}>
+            <List >
+             {steps.steps.map((step, index) => (
+              <ListItem button selected={index === currentIndex} onClick={() => changeStep(index)}>
+               <div dangerouslySetInnerHTML={{__html: step.Instructions}} />
+              </ListItem>
+              ))
+              }
+             </List>
+             </Paper>
+         }
+          <StreetView location={steps.steps[currentIndex].Loc} locEnd={steps.steps[currentIndex].EndLoc} />
+        </Box>
+        <Box alignItems="center" justifyContent="center" display="flex" >
+                <Button className={classes.np_button} onClick={() => getPreviousStep()} variant="contained" color="primary" fullWidth>
+                Previous
+                </Button>
+                <Button className={classes.np_button} onClick={() => getNextStep()} variant="contained" color="primary" fullWidth>
+                Next
+                </Button>
+          </Box>
   	</div>
   );
 
