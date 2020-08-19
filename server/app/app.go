@@ -148,12 +148,12 @@ type Steps struct {
 	LocStep				Pt			`json:"start_location"`
 	LocStepEnd			Pt			`json:"end_location"`
 	Html_Instructions 	string 		`json:"html_instructions"`
+	Dist 				ValText  	`json:"distance"`
 }
 
 type Legs struct {
 	Distance 	ValText		`json:"distance"`
 	Steps 		[]Steps 	`json:"steps"`
-
 }
 
 type DirRoutes struct {
@@ -173,6 +173,14 @@ type LocOfTurn struct {
 	Instructions 	string
 	Loc				[]float64
 	EndLoc 			[]float64
+}
+
+type trailInfo struct {
+	name		string
+	summary		string
+	location	string
+	length		float64
+	distFromOrg	float64
 }
 
 type Trails struct {
@@ -294,17 +302,47 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 
 }
 
-func getTrails(org Point) string {
-	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxResults=8&maxDistance=10" + TRPKEY
+func getTrails(org Point) ([]trailInfo, string) {
+	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxDistance=10&maxResults=8" + TRPKEY
 	response, err := api_request(url)
-
+	var trailResult []trailInfo
 	if (err != ``) {
-		return err
+		return trailResult, err
 	}
 	var resp_body TrailsResp
 	json.Unmarshal(response, &resp_body)
-	fmt.Println(resp_body)
-	return `OK`
+
+	if resp_body.Success == 0 {
+		return trailResult, `No trails found`
+	}
+	//fmt.Println(resp_body)
+
+	for _, trail := range resp_body.Trails {
+		fmt.Println("below")
+		temp := new(trailInfo)
+		temp.name = trail.Name
+		temp.location = trail.Location
+		temp.length = trail.Distance
+		
+		if strings.Contains(trail.Summary, "summary") {
+			temp.summary = ``
+		} else {
+			temp.summary = trail.Summary
+		}
+		// fmt.Println(trail.Summary)
+		distFromOrg, err :=  distance(org.lat, org.lng, trail.Lat, trail.Lon)
+		if err != `` {
+			return *new([]trailInfo), `distance error`
+		}
+		const mtoMi float64 = 0.00062137
+		temp.distFromOrg = float64(distFromOrg) * mtoMi
+		trailResult = append(trailResult, *temp)
+	}
+	sort.SliceStable(trailResult, func(i, j int) bool {
+		return trailResult[i].distFromOrg < trailResult[j].distFromOrg
+	})
+	fmt.Println(trailResult)
+	return trailResult, ``
 }
 
 // given an origin, distance and angle, finds the corresponding point
@@ -474,6 +512,7 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, stri
 }
 
 func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
+	//fmt.Println(dirURL)
 	response, err := api_request(dirURL)
 	var result []LocOfTurn
 	if (err != ``) {
@@ -484,7 +523,7 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 	json.Unmarshal(response, &resp_body)
 
 	if (resp_body.Status == "OK") {
-
+		tempDist := 0
 		for _, v := range resp_body.Rt[0].Legs[0].Steps {
 			turnLocs := new(LocOfTurn)
 			turnLocs.Turn = v.Maneuver
@@ -495,8 +534,10 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			// angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
 			turnLocs.EndLoc = tempEnd
 			result = append(result, *turnLocs)
+			tempDist += v.Dist.Value
 		}
-		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
+		return float64(tempDist), result, ""
+		//return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
 	}
 	fmt.Println("Status not okay")
 	return 0.0, result, resp_body.Status
