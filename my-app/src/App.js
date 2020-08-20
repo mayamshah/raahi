@@ -7,6 +7,7 @@ import axios from "axios";
 import MyMapComponent from "./MyMapComponent.js"
 import DirectionsViewer from "./DirectionsViewer.js"
 import NewDirectionsViewer from "./NewDirectionsViewer.js"
+import TrailViewer from "./TrailViewer.js"
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -158,12 +159,14 @@ function NestedGrid(props) {
 function Display() {
   const classes = useStyles();
   const [result, setResult] = useState([]);
+  const [trails, setTrails] = useState([]);
   const [currentAddress, setCurrentAddress] = useState("");
   const [currentMiles, setCurrentMiles] = useState("0");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState(false);
+  const [showTrail, setShowTrail] = useState(false);
   const [showDirections, setShowDirections] = useState(false);
   const [gridView, setGridView] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -189,6 +192,7 @@ function Display() {
           console.log(res.data.Results[currentIndex].Directions);
           setCurrentIndex(0)
           setShow(true)
+          setShowTrail(false)
         } else {
           setError(res.data.Error)
           setOpen(true)
@@ -200,24 +204,25 @@ function Display() {
 
   }
 
+  const trailendpoint = "http://localhost:8080/api/executetrail"
 
-  const stravaendpoint = "http://localhost:8080/api/executestrava"
-
-  function getStravaResult() {
+  function getTrailResult() {
      const request = {
         address: currentAddress,
         distance: currentMiles
       };
 
-      axios.post(stravaendpoint, request)
+      axios.post(trailendpoint, request)
       .then(res => {
         console.log(res);
         console.log(res.data);
         if (res.data.Error == '') {
           console.log("No error")
-          setResult(res.data.Results)
-          setCurrentIndex(0)
-          setShow(true)
+          setTrails(res.data.Results)
+          setShowTrail(true)
+          setShow(false)
+          // setCurrentIndex(0)
+          // setShow(true)
         } else {
           setError(res.data.Error)
           setOpen(true)
@@ -227,12 +232,14 @@ function Display() {
 
   function handleAddress(e) {
     setShow(false)
+    setShowTrail(false)
     setShowDirections(false)
     setCurrentAddress(e.target.value)
   }
 
   function handleMiles(e) {
     setShow(false)
+    setShowTrail(false)
     setShowDirections(false)
     setCurrentMiles(e.target.value)
   }
@@ -345,7 +352,7 @@ function Display() {
           <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" fullWidth>
           Generate Routes
           </Button>
-          <Button className={classes.button} onClick={() => getStravaResult()} variant="contained" color="primary" fullWidth>
+          <Button className={classes.button} onClick={() => getTrailResult()} variant="contained" color="primary" fullWidth>
           Trails Near Me
           </Button>
         </Box>
@@ -436,6 +443,11 @@ function Display() {
         </Button>
         </Paper>
       </main>
+    }
+    {showTrail && 
+      <Paper className={classes.paper}>
+        <TrailViewer trails={trails}/>
+      </Paper>
     }
     {showDirections &&
       <main className={classes.directions_layout}>
