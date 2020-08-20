@@ -113,10 +113,10 @@ return (
         </Box>
         <Box alignItems="center" justifyContent="center" display="flex" >
                 <Button className={classes.np_button} onClick={() => getPreviousStep()} variant="contained" color="primary" fullWidth>
-                Previous
+                Previous Step
                 </Button>
                 <Button className={classes.np_button} onClick={() => getNextStep()} variant="contained" color="primary" fullWidth>
-                Next
+                Next Step
                 </Button>
           </Box>
   	</div>
