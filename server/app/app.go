@@ -21,6 +21,8 @@ const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
 const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
 const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
 const NEAREST_RODE_URL = "https://roads.googleapis.com/v1/nearestRoads?points="
+const TRAILS_URL = "https://www.trailrunproject.com/data/get-trails?lat="
+const TRPKEY = "&key=200872374-da245a0b782e30b71d825d92027d8012"
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
@@ -146,12 +148,12 @@ type Steps struct {
 	LocStep				Pt			`json:"start_location"`
 	LocStepEnd			Pt			`json:"end_location"`
 	Html_Instructions 	string 		`json:"html_instructions"`
+	Dist 				ValText  	`json:"distance"`
 }
 
 type Legs struct {
 	Distance 	ValText		`json:"distance"`
 	Steps 		[]Steps 	`json:"steps"`
-
 }
 
 type DirRoutes struct {
@@ -171,6 +173,29 @@ type LocOfTurn struct {
 	Instructions 	string
 	Loc				[]float64
 	EndLoc 			[]float64
+}
+
+type TrailInfo struct {
+	Name		string
+	Summary		string
+	Location	string
+	Length		float64
+	DistFromOrg	float64
+	Coords 		Point
+}
+
+type Trails struct {
+	Name		string		`json:"name"`
+	Summary		string		`json:"summary"`
+	Location	string		`json:"location"`
+	Distance	float64		`json:"length"`
+	Lat			float64		`json:"latitude"`
+	Lon			float64		`json:"longitude"`
+}
+
+type TrailsResp struct {
+	Trails 		[]Trails	`json:"trails"`
+	Success		int			`json:"success"`
 }
 
 type make_route func(point Point, distance float64, offset float64) []Point
@@ -276,6 +301,52 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 	return NewPoint(resLat, resLng), ``
 
 
+}
+
+func getTrails(org Point) ([]TrailInfo, string) {
+	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxDistance=10&maxResults=8" + TRPKEY
+	response, err := api_request(url)
+	var trailResult []TrailInfo
+	if (err != ``) {
+		return trailResult, err
+	}
+	var resp_body TrailsResp
+	json.Unmarshal(response, &resp_body)
+
+	if resp_body.Success == 0 {
+		return trailResult, `No trails found`
+	}
+	//fmt.Println(resp_body)
+
+	for _, trail := range resp_body.Trails {
+		temp := new(TrailInfo)
+		temp.Name = trail.Name
+		temp.Location = trail.Location
+		temp.Length = trail.Distance
+		
+		if strings.Contains(trail.Summary, "summary") {
+			temp.Summary = ``
+		} else {
+			temp.Summary = trail.Summary
+		}
+		// fmt.Println(trail.Summary)
+		distFromOrg, err :=  distance(org.lat, org.lng, trail.Lat, trail.Lon)
+		if err != `` {
+			return *new([]TrailInfo), `distance error`
+		}
+		const mtoMi float64 = 0.00062137
+		temp.DistFromOrg = float64(distFromOrg) * mtoMi
+		temp.Coords = NewPoint(trail.Lat, trail.Lon)
+		trailResult = append(trailResult, *temp)
+	}
+	if len(trailResult) == 0 {
+		return trailResult, `no trails found`
+	}
+	sort.SliceStable(trailResult, func(i, j int) bool {
+		return trailResult[i].DistFromOrg < trailResult[j].DistFromOrg
+	})
+	fmt.Println(trailResult)
+	return trailResult, ``
 }
 
 // given an origin, distance and angle, finds the corresponding point
@@ -445,6 +516,7 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, stri
 }
 
 func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
+	//fmt.Println(dirURL)
 	response, err := api_request(dirURL)
 	var result []LocOfTurn
 	if (err != ``) {
@@ -455,7 +527,7 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 	json.Unmarshal(response, &resp_body)
 
 	if (resp_body.Status == "OK") {
-
+		tempDist := 0
 		for _, v := range resp_body.Rt[0].Legs[0].Steps {
 			turnLocs := new(LocOfTurn)
 			turnLocs.Turn = v.Maneuver
@@ -466,8 +538,10 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			// angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
 			turnLocs.EndLoc = tempEnd
 			result = append(result, *turnLocs)
+			tempDist += v.Dist.Value
 		}
-		return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
+		return float64(tempDist), result, ""
+		//return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
 	}
 	fmt.Println("Status not okay")
 	return 0.0, result, resp_body.Status
@@ -538,10 +612,43 @@ func newFullResponse(results []ResponseNew) *FullResponse {
 	return this
 }
 
+func getOGFixHex(org Point) float64 {
+	p0, err_0 := get_point(org, .5, 0.0, true)
+	p1, err_1 := get_point(org, .5, 60.0, true)
+	p2, err_2 := get_point(org, .5, 120.0, true)
+	p3, err_3 := get_point(org, .5, 180.0, true)
+	p4, err_4 := get_point(org, .5, 240.0, true)
+	p5, err_5 := get_point(org, .5, 300.0, true)
+	if (err_0 != `` || err_1 != `` || err_2 != `` || err_3 != `` || err_4 != `` || err_5 != ``) {
+		return 1.0
+	}
+	var ptRoute [][]Point
+	ptRoute = append(ptRoute, []Point{p1, p2, p3, p4, p5})
+	_, avg := get_distance(ptRoute, p0, 3.0)
+	fmt.Println(avg)
+	return 3.0 / avg
+}
+
+func getOGFix(org Point) float64 {
+	p0, err_0 := get_point(org, .707107, 45.0, true)
+	p1, err_1 := get_point(org, .707107, 135.0, true)
+	p2, err_2 := get_point(org, .707107, 225.0, true)
+	p3, err_3 := get_point(org, .707107, 315.0, true)
+
+	if (err_0 != `` || err_1 != `` || err_2 != `` || err_3 != ``) {
+		return 1.0
+	}
+	var ptRoute [][]Point
+	ptRoute = append(ptRoute, []Point{p1, p2, p3})
+	_, avg := get_distance(ptRoute, p0, 4.0)
+	fmt.Println(avg)
+	return 4.0 / avg
+}
+
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string, error_fix float64) *FullResponse {
+func execute_request(input string, distance_string string) *FullResponse {
 	var routeOrder []make_route
-	routeOrder = append(routeOrder, square_route, square_route, equilateral_triangle, equilateral_triangle, right_triangle, right_triangle, right_triangleOther, right_triangleOther, straight_line, straight_line)
+	routeOrder = append(routeOrder, equilateral_triangle, equilateral_triangle, right_triangle, right_triangle, right_triangleOther, right_triangleOther, square_route, square_route, straight_line, straight_line)
 	//convert distance to float64
 	//check to see if distance is a proper number
 	distance, err := strconv.ParseFloat(distance_string, 64)
@@ -569,13 +676,18 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 	origin := NewPoint(lat, lng)
 	fmt.Println(origin)
 
+	// getTrails(origin)
+	// return getErrorResponse(`hey`)
+
+	ogFix := getOGFix(origin)
+	fmt.Println(ogFix)
 	//get the possible routes
-	routes := create_routes(origin, distance*(error_fix), 8.0, routeOrder[0])
+	routes := create_routes(origin, distance*(ogFix), 8.0, routeOrder[0])
 
 	desired := distance
 	pathDetails, avgDist := get_distance(routes, origin, float64(desired))
 	fmt.Println(avgDist)
-	error_fix = desired / avgDist
+	error_fix := desired / avgDist
 	fmt.Println(error_fix)
 	attempts := 0
 	for len(pathDetails) < 8 {
@@ -590,7 +702,7 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 			error_fix = 1.0
 		}
 		fmt.Println("with error fix of", error_fix)
-		routes = create_routes(origin, distance*(error_fix), 8.0, routeOrder[attempts])
+		routes = create_routes(origin, distance*(error_fix)*(ogFix), 8.0, routeOrder[attempts])
 		morePaths, avgDist := get_distance(routes, origin, float64(desired))
 		fmt.Println(avgDist, desired)
 		error_fix = desired / avgDist
@@ -625,13 +737,19 @@ func execute_request(input string, distance_string string, error_fix float64) *F
 
 	//sorts difference desired distance from path distance from least to greatest
 	sort.SliceStable(result, func(i, j int) bool {
-		return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
+		if len(result[i].Path) > 1 && len(result[j].Path) > 1 {
+			return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
+		}
+		if len(result[i].Path) == 1 && len(result[j].Path) == 1 {
+			return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
+		}
+		return len(result[i].Path) > len(result[i].Path)
 	})
 
 
 	if len(result) > 8 {
 		//only want best 8 if there are more then 8
-		pathDetails = pathDetails[0:8]
+		result = result[0:8]
 	}
 
 	return newFullResponse(result)
@@ -651,7 +769,7 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	//path, distance, percent_error, err := execute_request(req.Address, req.Distance, 1.0)
 	//json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
-	if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance, 1.0)); err != nil {
+	if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance)); err != nil {
 		json.NewEncoder(w).Encode(getErrorResponse(fmt.Sprintf(`%s`, err)))
 	}
 }
@@ -924,8 +1042,8 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 // 	// 		break
 // 	// 	}
 // 	// }
-// 	distance := "1"
-// 	execute_request(input, distance, 1.0)
+// 	distance := "15"
+// 	execute_request(input, distance)
 // 	fmt.Println("strava response below")
 // 	//ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
 // }
