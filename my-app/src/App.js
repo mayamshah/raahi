@@ -26,6 +26,7 @@ import IconButton from '@material-ui/core/IconButton';
 import InfoIcon from '@material-ui/icons/Info';
 import DirectionsIcon from '@material-ui/icons/Directions';
 import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
+import TimelineIcon from '@material-ui/icons/Timeline';
 import ButtonGroup from '@material-ui/core/ButtonGroup';
 import Tooltip from '@material-ui/core/Tooltip';
 import Drawer from '@material-ui/core/Drawer';
@@ -36,7 +37,7 @@ import Collapse from '@material-ui/core/Collapse';
 
 import './title.css';
 
-let endpoint = "http://localhost:8080/api/execute";
+let endpoint = "http://localhost:8080/api/tester";
 
 const useStyles = makeStyles((theme) => ({
 
@@ -53,7 +54,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   layout: {
-    width: 400,
+    width: 500,
     marginLeft: 'auto',
     marginRight: 'auto',
     // [theme.breakpoints.down(1010)]: {
@@ -72,6 +73,10 @@ const useStyles = makeStyles((theme) => ({
     // },
   },
 
+  map_button_layout: {
+    width: 400
+  },
+
   directions_layout:{
     width: 600,
     marginLeft: 'auto',
@@ -86,7 +91,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   paper_for_map: {
-    height: 350,
+    height: 400,
     width: 200,
   },
 
@@ -104,7 +109,8 @@ const useStyles = makeStyles((theme) => ({
     margin: theme.spacing(0,1,1,0),
   },
   np_button: {
-    margin: theme.spacing(0,1,1,0)
+    margin: theme.spacing(2,1,1,0)
+
   },
   root_grid: {
     flexGrow: 1,
@@ -118,6 +124,10 @@ const useStyles = makeStyles((theme) => ({
     width: 60,
     height: 60,
   },
+
+  // button_box: {
+  //   align: 'center',
+  // },
 }));
 
 function NestedGrid(props) {
@@ -320,23 +330,23 @@ function Display() {
     <main className={classes.layout}>
       <Paper className={classes.paper}>
         <Typography className={classes.heading} component="h1" variant="h6">
-          What is your starting point?
+          What is your location?
         </Typography>
         <form className={classes.textField} noValidate>
           <TextField id="standard-basic" label="Address" onChange={e => handleAddress(e)}/>
         </form>
         <Typography className={classes.heading} component="h1" variant="h6">
-          How many miles?
+          What is your desired route length?
         </Typography>
         <form className={classes.textField} noValidate>
           <TextField id="standard-basic" label="Miles" onChange={e => handleMiles(e)}/>
         </form>
         <Box alignItems="center" justifyContent="center" display="flex" >
           <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" fullWidth>
-          Enter
+          Generate Routes
           </Button>
           <Button className={classes.button} onClick={() => getStravaResult()} variant="contained" color="primary" fullWidth>
-          Routes Near Me
+          Trails Near Me
           </Button>
         </Box>
       </Paper>
@@ -352,8 +362,8 @@ function Display() {
                   <Paper className={classes.paper_for_map}> 
                   <Grid container direction="column" spacing={4}>
                       <Grid item xs={12} zeroMinWidth>
-                      <Typography component="h1" variant="h6" align="center">
-                        {"Showing results: " + (currentIndex + 1) + "/" + result.length}
+                      <Typography component="h1" variant="overline" align="center" >
+                        {"Showing result: " + (currentIndex + 1) + "/" + result.length}
                       </Typography>
                       </Grid>
 
@@ -365,7 +375,7 @@ function Display() {
 
                       <Grid item xs={12}>
                         <Grid container alignItems="flex-start" justify="center" direction="row">
-                        <Tooltip title="Show Directions">
+                        <Tooltip title="Directions">
                               <IconButton onClick={() => buttonShowDirections()} >
                                 <DirectionsRunIcon fontSize="large"/>
                               </IconButton>
@@ -375,7 +385,7 @@ function Display() {
 
                       <Grid item xs={12}>
                         <Grid container alignItems="flex-start" justify="center" direction="row">
-                        <Tooltip title="View Directions in Google Maps">
+                        <Tooltip title="Export Route">
                               <IconButton onClick={() => buttonExportDirections()}>
                                 <DirectionsIcon fontSize="large"/>
                               </IconButton>
@@ -383,18 +393,36 @@ function Display() {
                         </Grid>
                       </Grid>
 
+                      <Grid item xs={12}>
+                        <Grid container alignItems="flex-start" justify="center" direction="row">
+                        <Tooltip title="Trails Near Me">
+                              <IconButton>
+                                <TimelineIcon fontSize="large"/>
+                              </IconButton>
+                        </Tooltip>
+                        </Grid>
+                      </Grid>
+
+                      
+
+
                   </Grid>
                   </Paper>
+            <main className={classes.map_button_layout}>
               <Something response = {result[currentIndex]} onClick= {() => mapClicked()}/>
+              <main className={classes.button_box}>
+                <Box alignItems="center" justifyContent="center" display="flex" height={50}>
+                  <Button className={classes.np_button} onClick={() => prevResult()} variant="contained" color="primary" fullWidth>
+                  Previous
+                  </Button>
+                  <Button className={classes.np_button} onClick={() => nextResult()} variant="contained" color="primary" fullWidth>
+                  Next
+                  </Button>
+                </Box>
+              </main>
+            </main>
             </Box>
-            <Box alignItems="center" justifyContent="center" display="flex" >
-              <Button className={classes.np_button} onClick={() => prevResult()} variant="contained" color="primary" fullWidth>
-              Previous
-              </Button>
-              <Button className={classes.np_button} onClick={() => nextResult()} variant="contained" color="primary" fullWidth>
-              Next
-              </Button>
-            </Box>
+            
             </Paper>
         </Fade>
       </main>
