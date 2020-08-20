@@ -303,10 +303,10 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 
 }
 
-func getTrails(org Point) ([]trailInfo, string) {
+func getTrails(org Point) ([]TrailInfo, string) {
 	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxDistance=10&maxResults=8" + TRPKEY
 	response, err := api_request(url)
-	var trailResult []trailInfo
+	var trailResult []TrailInfo
 	if (err != ``) {
 		return trailResult, err
 	}
@@ -319,20 +319,20 @@ func getTrails(org Point) ([]trailInfo, string) {
 	//fmt.Println(resp_body)
 
 	for _, trail := range resp_body.Trails {
-		temp := new(trailInfo)
+		temp := new(TrailInfo)
 		temp.Name = trail.Name
 		temp.Location = trail.Location
 		temp.Length = trail.Distance
 		
 		if strings.Contains(trail.Summary, "summary") {
-			temp.summary = ``
+			temp.Summary = ``
 		} else {
-			temp.summary = trail.Summary
+			temp.Summary = trail.Summary
 		}
 		// fmt.Println(trail.Summary)
 		distFromOrg, err :=  distance(org.lat, org.lng, trail.Lat, trail.Lon)
 		if err != `` {
-			return *new([]trailInfo), `distance error`
+			return *new([]TrailInfo), `distance error`
 		}
 		const mtoMi float64 = 0.00062137
 		temp.DistFromOrg = float64(distFromOrg) * mtoMi
@@ -343,7 +343,7 @@ func getTrails(org Point) ([]trailInfo, string) {
 		return trailResult, `no trails found`
 	}
 	sort.SliceStable(trailResult, func(i, j int) bool {
-		return trailResult[i].distFromOrg < trailResult[j].distFromOrg
+		return trailResult[i].DistFromOrg < trailResult[j].DistFromOrg
 	})
 	fmt.Println(trailResult)
 	return trailResult, ``
