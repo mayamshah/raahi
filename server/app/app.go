@@ -49,6 +49,11 @@ type FullResponse struct {
 	Error string
 }
 
+type TrailResponse struct {
+	Results []TrailInfo 
+	Error 	string
+}
+
 type ResponseNew struct {
 	Org 		[]float64
 	Dest		[]float64
@@ -181,7 +186,7 @@ type TrailInfo struct {
 	Location	string
 	Length		float64
 	DistFromOrg	float64
-	Coords 		Point
+	Coords 		[]float64
 }
 
 type Trails struct {
@@ -197,6 +202,8 @@ type TrailsResp struct {
 	Trails 		[]Trails	`json:"trails"`
 	Success		int			`json:"success"`
 }
+
+
 
 type make_route func(point Point, distance float64, offset float64) []Point
 
@@ -336,7 +343,7 @@ func getTrails(org Point) ([]TrailInfo, string) {
 		}
 		const mtoMi float64 = 0.00062137
 		temp.DistFromOrg = float64(distFromOrg) * mtoMi
-		temp.Coords = NewPoint(trail.Lat, trail.Lon)
+		temp.Coords = []float64{trail.Lat, trail.Lon}
 		trailResult = append(trailResult, *temp)
 	}
 	if len(trailResult) == 0 {
@@ -600,6 +607,13 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPat
 
 func getErrorResponse(error string) *FullResponse {
 	this := new(FullResponse)
+	this.Results = nil
+	this.Error = error
+	return this
+}
+
+func getTrailErrorResponse(error string) *TrailResponse {
+	this := new(TrailResponse)
 	this.Results = nil
 	this.Error = error
 	return this
@@ -951,6 +965,59 @@ func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(getErrorResponse(fmt.Sprintf(`%s`, err)))
 	}
 }
+
+
+func ExecuteTrailRequest(address string) *TrailResponse {
+
+	//form url from address
+	url := address_to_api_call(address)
+
+	//get response from google api server
+	response, error := api_request(url)
+	if (error != ``) {
+		return getTrailErrorResponse(error)
+	}
+
+	//check to see if address exists
+	if !check_responseGeocode(response) {
+		return getTrailErrorResponse("Address does not exist")
+	}
+
+	//get the latitude and longitude
+	lat, lng := extract_coordinates(response)
+	origin := NewPoint(lat, lng)
+
+	trails, error := getTrails(origin)
+
+	if (error != ``) {
+		return getTrailErrorResponse(error)
+	} else {
+		this := new(TrailResponse)
+		this.Results = trails
+		this.Error = ``
+		return this
+	}
+
+}
+
+func ExecuteTrail(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	var req Request
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+
+	TrailResponse := ExecuteTrailRequest(req.Address)
+
+	if err := json.NewEncoder(w).Encode(TrailResponse); err != nil {
+		json.NewEncoder(w).Encode(getTrailErrorResponse(fmt.Sprintf(`%s`, err)))
+	}
+}
+
 
 func Tester(w http.ResponseWriter, r *http.Request) {
 
