@@ -1,14 +1,14 @@
-package main
+package app
 
 import (
-	"bufio"
+	// "bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 
-	"os"
+	// "os"
 	"sort"
 	"strconv"
 	"strings"
@@ -175,12 +175,13 @@ type LocOfTurn struct {
 	EndLoc 			[]float64
 }
 
-type trailInfo struct {
-	name		string
-	summary		string
-	location	string
-	length		float64
-	distFromOrg	float64
+type TrailInfo struct {
+	Name		string
+	Summary		string
+	Location	string
+	Length		float64
+	DistFromOrg	float64
+	Coords 		Point
 }
 
 type Trails struct {
@@ -318,11 +319,10 @@ func getTrails(org Point) ([]trailInfo, string) {
 	//fmt.Println(resp_body)
 
 	for _, trail := range resp_body.Trails {
-		fmt.Println("below")
 		temp := new(trailInfo)
-		temp.name = trail.Name
-		temp.location = trail.Location
-		temp.length = trail.Distance
+		temp.Name = trail.Name
+		temp.Location = trail.Location
+		temp.Length = trail.Distance
 		
 		if strings.Contains(trail.Summary, "summary") {
 			temp.summary = ``
@@ -335,8 +335,12 @@ func getTrails(org Point) ([]trailInfo, string) {
 			return *new([]trailInfo), `distance error`
 		}
 		const mtoMi float64 = 0.00062137
-		temp.distFromOrg = float64(distFromOrg) * mtoMi
+		temp.DistFromOrg = float64(distFromOrg) * mtoMi
+		temp.Coords = NewPoint(trail.Lat, trail.Lon)
 		trailResult = append(trailResult, *temp)
+	}
+	if len(trailResult) == 0 {
+		return trailResult, `no trails found`
 	}
 	sort.SliceStable(trailResult, func(i, j int) bool {
 		return trailResult[i].distFromOrg < trailResult[j].distFromOrg
@@ -672,8 +676,8 @@ func execute_request(input string, distance_string string) *FullResponse {
 	origin := NewPoint(lat, lng)
 	fmt.Println(origin)
 
-	getTrails(origin)
-	return getErrorResponse(`hey`)
+	// getTrails(origin)
+	// return getErrorResponse(`hey`)
 
 	ogFix := getOGFix(origin)
 	fmt.Println(ogFix)
@@ -745,7 +749,7 @@ func execute_request(input string, distance_string string) *FullResponse {
 
 	if len(result) > 8 {
 		//only want best 8 if there are more then 8
-		pathDetails = pathDetails[0:8]
+		result = result[0:8]
 	}
 
 	return newFullResponse(result)
@@ -1007,39 +1011,39 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func main() {
+// func main() {
 
-	// setup the scanner
-	scanner := bufio.NewScanner(os.Stdin)
+// 	// setup the scanner
+// 	scanner := bufio.NewScanner(os.Stdin)
 
-	//ask for address
-	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
+// 	//ask for address
+// 	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
 
-	//read user input
-	var input string
-	for scanner.Scan() {
-		input = scanner.Text()
-		if strings.Contains(input, "") {
-			break
-		}
-	}
+// 	//read user input
+// 	var input string
+// 	for scanner.Scan() {
+// 		input = scanner.Text()
+// 		if strings.Contains(input, "") {
+// 			break
+// 		}
+// 	}
 
-	// ask for distance
-	// fmt.Printf("Enter desired distance in miles\n")
+// 	// ask for distance
+// 	// fmt.Printf("Enter desired distance in miles\n")
 
-	// read user input
-	// var distance string
-	// for scanner.Scan() {
-	// 	distance = scanner.Text()
-	// 	if strings.Contains(distance, "") {
-	// 		break
-	// 	}
-	// }
-	distance := "15"
-	execute_request(input, distance)
-	fmt.Println("strava response below")
-	//ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
-}
+// 	// read user input
+// 	// var distance string
+// 	// for scanner.Scan() {
+// 	// 	distance = scanner.Text()
+// 	// 	if strings.Contains(distance, "") {
+// 	// 		break
+// 	// 	}
+// 	// }
+// 	distance := "15"
+// 	execute_request(input, distance)
+// 	fmt.Println("strava response below")
+// 	//ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
+// }
 	// best_distance_index := 0
 	// best_distance_difference := math.Abs(distance - responses[0].Distance)
 	// for i, resp := range responses {
