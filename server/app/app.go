@@ -972,16 +972,19 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 	stop_1 := new(LocOfTurn)
 	stop_1.Instructions = "Head <b>south</b> on <b>Palmtag Dr</b> toward <b>Bellwood Dr</b>"
 	stop_1.Loc = []float64{37.2862401,  -122.0078964}
+	stop_1.EndLoc = []float64{37.2862401,  -122.0078964}
 	stop_1.Turn =  ""
 
 	stop_2 := new(LocOfTurn)
 	stop_2.Instructions = "Turn <b>right</b> onto <b>Bellwood Dr</b>"
 	stop_2.Loc = []float64{37.2856419, -122.0080037}
+	stop_2.EndLoc = []float64{37.2862401,  -122.0078964}
 	stop_2.Turn =  "turn-right"
 
 	stop_3 := new(LocOfTurn)
 	stop_3.Instructions = "Turn <b>left</b> onto <b>Titus Ave</b>"
 	stop_3.Loc = []float64{37.2857637, -122.0100177}
+	stop_3.EndLoc = []float64{37.2862401,  -122.0078964}
 	stop_3.Turn =  "turn-left"
 
 	temp.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}

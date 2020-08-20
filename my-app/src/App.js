@@ -19,9 +19,22 @@ import DirectionsNew from "./NewMap.js";
 import {LoadScript} from '@react-google-maps/api';
 import Grid from '@material-ui/core/Grid';
 import getDirections from './DirectionsExporter.js'
+import Toolbar from '@material-ui/core/Toolbar';
+import AppBar from '@material-ui/core/AppBar';
+import { Box } from '@material-ui/core';
+import IconButton from '@material-ui/core/IconButton';
+import InfoIcon from '@material-ui/icons/Info';
+import DirectionsIcon from '@material-ui/icons/Directions';
+import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
+import ButtonGroup from '@material-ui/core/ButtonGroup';
+import Tooltip from '@material-ui/core/Tooltip';
+import Drawer from '@material-ui/core/Drawer';
+import Collapse from '@material-ui/core/Collapse';
+
+
+
+
 import './title.css';
-
-
 
 let endpoint = "http://localhost:8080/api/execute";
 
@@ -34,6 +47,9 @@ const useStyles = makeStyles((theme) => ({
     //   display: "",
     //   flexWrap: "nowrap",
     // }
+  },
+  container: {
+    display: 'flex',
   },
 
   layout: {
@@ -70,22 +86,25 @@ const useStyles = makeStyles((theme) => ({
   },
 
   paper_for_map: {
-    height: `100%`,
-  padding: theme.spacing(2),
-
+    height: 350,
+    width: 200,
   },
 
   heading: {
-    margin: theme.spacing(3,0,0,3),
+    margin: theme.spacing(0,0,0,0),
     color: 'black',
     height: 48,
+    align: 'center',
   },
   textField: {
     width: '25ch',
-    margin: theme.spacing(0,0,3,3),
+    margin: theme.spacing(0,0,4,0),
   },
   button: {
-    margin: theme.spacing(3,0,0,3),
+    margin: theme.spacing(0,1,1,0),
+  },
+  np_button: {
+    margin: theme.spacing(0,1,1,0)
   },
   root_grid: {
     flexGrow: 1,
@@ -94,6 +113,10 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
     textAlign: 'center',
     color: theme.palette.text.secondary,
+  },
+  largeIcon: {
+    width: 60,
+    height: 60,
   },
 }));
 
@@ -134,6 +157,8 @@ function Display() {
   const [showDirections, setShowDirections] = useState(false);
   const [gridView, setGridView] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [menu, setMenu] = useState(true);
+
 
 
   function getResult() {
@@ -294,24 +319,26 @@ function Display() {
     <div className={classes.overall_layout}>
     <main className={classes.layout}>
       <Paper className={classes.paper}>
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+        <Typography className={classes.heading} component="h1" variant="h6">
           What is your starting point?
         </Typography>
         <form className={classes.textField} noValidate>
           <TextField id="standard-basic" label="Address" onChange={e => handleAddress(e)}/>
         </form>
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
+        <Typography className={classes.heading} component="h1" variant="h6">
           How many miles?
         </Typography>
         <form className={classes.textField} noValidate>
           <TextField id="standard-basic" label="Miles" onChange={e => handleMiles(e)}/>
         </form>
-        <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" >
-        Enter
-        </Button>
-        <Button className={classes.button} onClick={() => getStravaResult()} variant="contained" color="primary" >
-        Routes Near Me
-        </Button>
+        <Box alignItems="center" justifyContent="center" display="flex" >
+          <Button className={classes.button} onClick={() => getResult()} variant="contained" color="primary" fullWidth>
+          Enter
+          </Button>
+          <Button className={classes.button} onClick={() => getStravaResult()} variant="contained" color="primary" fullWidth>
+          Routes Near Me
+          </Button>
+        </Box>
       </Paper>
     </main>
     <LoadScript
@@ -321,25 +348,53 @@ function Display() {
       <main className={classes.map_layout}>
         <Fade in={show}>
             <Paper className={classes.paper}>
-            <Something response = {result[currentIndex]} onClick= {() => mapClicked()}/>
-            <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-            {result[currentIndex].Distance.toString() + " mile route"}
-            </Typography>
-            <Button className={classes.button} onClick={() => nextResult()} variant="contained" color="primary" >
-            Next
-            </Button>
-            <Button className={classes.button} onClick={() => prevResult()} variant="contained" color="primary" >
-            Previous
-            </Button>
-            <Button className={classes.button} onClick={() => buttonShowDirections()} variant="contained" color="primary" >
-            Show Directions
-            </Button>
-            <Button className={classes.button} onClick={() => buttonExportDirections()} variant="contained" color="primary" >
-            Export Directions
-            </Button>
-            { false && <Button className={classes.button} onClick={() => buttonGridView()} variant="contained" color="primary" >
-            GridView
-            </Button> }
+            <Box alignItems="center" justifyContent="center" display="flex" >
+                  <Paper className={classes.paper_for_map}> 
+                  <Grid container direction="column" spacing={4}>
+                      <Grid item xs={12} zeroMinWidth>
+                      <Typography component="h1" variant="h6" align="center">
+                        {"Showing results: " + (currentIndex + 1) + "/" + result.length}
+                      </Typography>
+                      </Grid>
+
+                      <Grid item xs={12} zeroMinWidth>
+                      <Typography component="h1" variant="h6" align="center">
+                          {Number(result[currentIndex].Distance).toFixed(2).toString() + " mile route"}
+                      </Typography>
+                      </Grid>
+
+                      <Grid item xs={12}>
+                        <Grid container alignItems="flex-start" justify="center" direction="row">
+                        <Tooltip title="Show Directions">
+                              <IconButton onClick={() => buttonShowDirections()} >
+                                <DirectionsRunIcon fontSize="large"/>
+                              </IconButton>
+                        </Tooltip>
+                        </Grid>
+                       </Grid> 
+
+                      <Grid item xs={12}>
+                        <Grid container alignItems="flex-start" justify="center" direction="row">
+                        <Tooltip title="View Directions in Google Maps">
+                              <IconButton onClick={() => buttonExportDirections()}>
+                                <DirectionsIcon fontSize="large"/>
+                              </IconButton>
+                        </Tooltip>
+                        </Grid>
+                      </Grid>
+
+                  </Grid>
+                  </Paper>
+              <Something response = {result[currentIndex]} onClick= {() => mapClicked()}/>
+            </Box>
+            <Box alignItems="center" justifyContent="center" display="flex" >
+              <Button className={classes.np_button} onClick={() => prevResult()} variant="contained" color="primary" fullWidth>
+              Previous
+              </Button>
+              <Button className={classes.np_button} onClick={() => nextResult()} variant="contained" color="primary" fullWidth>
+              Next
+              </Button>
+            </Box>
             </Paper>
         </Fade>
       </main>
@@ -367,7 +422,7 @@ function Display() {
         <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
           Loading
         </Typography>
-      }
+     }
     </main>
 
         <Dialog
@@ -397,8 +452,15 @@ const overallStyles = makeStyles((theme) => ({
    
   heading: {
     margin: theme.spacing(3,0,0,3),
-    color: 'black',
+    color: 'white',
     height: 48,
+    align: 'left',
+  },
+  subtext: {
+    margin: theme.spacing(0,0,0,3),
+    color: 'white',
+    height: 20,
+    align: 'left',
   },
   textField: {
     width: '25ch',
@@ -412,13 +474,31 @@ const overallStyles = makeStyles((theme) => ({
 function App() {
 
   const classes = overallStyles();
+    const [drawerState, setDrawerState] = useState(false);
+
 
   return (
     <React.Fragment>
       <CssBaseline />
-        <Typography className="title.body" component="h1" variant="h4" align="center">
-          Raahi
-        </Typography>
+      <AppBar position="relative">
+        <Toolbar>
+          <Typography className={classes.heading} component="h1" variant="h4">
+            Raahi
+          </Typography>
+          {false && 
+            <div>
+            <IconButton align='right' aria-label="route info" onClick={ () => setDrawerState(true)}>
+               <InfoIcon />
+            </IconButton>
+            <Drawer anchor={'left'} open={drawerState} onClose={() => setDrawerState(false)}>
+             <Typography className={classes.heading} component="h1" variant="h4">
+                hello
+            </Typography>
+            </Drawer>
+            </div>
+          }
+        </Toolbar>
+      </AppBar>
         <Display/>
     </React.Fragment>
   );
