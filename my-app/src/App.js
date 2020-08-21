@@ -37,6 +37,8 @@ import ListItemText from '@material-ui/core/ListItemText';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import clsx from 'clsx';
+import CircularProgress from '@material-ui/core/CircularProgress';
+
 
 
 
@@ -45,7 +47,7 @@ import clsx from 'clsx';
 
 import './title.css';
 
-let endpoint = "http://localhost:8080/api/tester";
+let endpoint = "http://localhost:8080/api/execute";
 
 const useStyles = makeStyles((theme) => ({
 
@@ -188,6 +190,7 @@ function Display() {
         distance: currentMiles
       };
       setLoading(true)
+      setShowTrail(false)
 
       axios.post(endpoint, request)
       .then(res => {
@@ -219,11 +222,15 @@ function Display() {
         address: currentAddress,
         distance: currentMiles
       };
+      setLoading(true)
+      setShow(false)
+      setShowDirections(false)
 
       axios.post(trailendpoint, request)
       .then(res => {
         console.log(res);
         console.log(res.data);
+        setLoading(false)
         if (res.data.Error == '') {
           console.log("No error")
           setTrails(res.data.Results)
@@ -365,7 +372,13 @@ function Display() {
           Trails Near Me
           </Button>
         </Box>
+        
       </Paper>
+       <Box alignItems="center" justifyContent="center" display="flex" paddingTop={5}>
+        {loading &&
+          <CircularProgress />
+        }
+      </Box>
     </main>
     <LoadScript
         googleMapsApiKey="AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -465,16 +478,9 @@ function Display() {
           </Paper>
        </main>
      }
-    </LoadScript>
-    <main>
-      {loading &&
-        <Typography className={classes.heading} component="h1" variant="h6" gutterBottom>
-          Loading
-        </Typography>
-     }
-    </main>
-
-        <Dialog
+    </LoadScript> 
+    
+    <Dialog
           open={open}
           onClose={handleClose}
           aria-labelledby="alert-dialog-title"
