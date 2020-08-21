@@ -25,6 +25,7 @@ import AppBar from '@material-ui/core/AppBar';
 import { Box } from '@material-ui/core';
 import IconButton from '@material-ui/core/IconButton';
 import InfoIcon from '@material-ui/icons/Info';
+import MenuIcon from '@material-ui/icons/Menu';
 import DirectionsIcon from '@material-ui/icons/Directions';
 import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
 import TimelineIcon from '@material-ui/icons/Timeline';
@@ -32,6 +33,12 @@ import ButtonGroup from '@material-ui/core/ButtonGroup';
 import Tooltip from '@material-ui/core/Tooltip';
 import Drawer from '@material-ui/core/Drawer';
 import Collapse from '@material-ui/core/Collapse';
+import ListItemText from '@material-ui/core/ListItemText';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import clsx from 'clsx';
+
+
 
 
 
@@ -509,37 +516,138 @@ const overallStyles = makeStyles((theme) => ({
   button: {
     margin: theme.spacing(3,0,0,3),
   },
+  root: {
+    display: 'flex',
+  },
+  appBar: {
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+  },
+  appBarShift: {
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: drawerWidth,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+  menuButton: {
+    marginRight: theme.spacing(2),
+  },
+  hide: {
+    display: 'none',
+  },
+  drawer: {
+    width: drawerWidth,
+    flexShrink: 0,
+  },
+  drawerPaper: {
+    width: drawerWidth,
+  },
+  drawerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0, 1),
+    // necessary for content to be below app bar
+    ...theme.mixins.toolbar,
+    justifyContent: 'flex-end',
+  },
+  content: {
+    flexGrow: 1,
+    padding: theme.spacing(3),
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    marginLeft: -drawerWidth,
+  },
+  contentShift: {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  },
 }));
+
+const drawerWidth = 240;
+
+
+function About() {
+  return (
+      <Paper>
+        <Box alignItems="center" justifyContent="center" display="flex" >
+        <Typography component="h1" variant="h5">
+              About
+        </Typography>
+        </Box>
+      </Paper>
+    )
+}
 
 function App() {
 
   const classes = overallStyles();
     const [drawerState, setDrawerState] = useState(false);
+    const [display, setDisplay] = useState(true);
+    const [about, setAbout] = useState(false);
 
+    function homeClicked() {
+      setDisplay(true) 
+      setAbout(false)
+      setDrawerState(false)
+    }
+
+    function aboutClicked() {
+      setDisplay(false) 
+      setAbout(true)
+      setDrawerState(false)
+    }
 
   return (
     <React.Fragment>
       <CssBaseline />
-      <AppBar position="relative">
+      <AppBar position="relative"
+      className={clsx(classes.appBar, {
+          [classes.appBarShift]: drawerState,
+        })}
+      >
         <Toolbar>
-          <Typography className={classes.heading} component="h1" variant="h4">
-            Raahi
-          </Typography>
-          {false && 
+        {true && 
             <div>
             <IconButton align='right' aria-label="route info" onClick={ () => setDrawerState(true)}>
-               <InfoIcon />
+               <MenuIcon />
             </IconButton>
-            <Drawer anchor={'left'} open={drawerState} onClose={() => setDrawerState(false)}>
-             <Typography className={classes.heading} component="h1" variant="h4">
-                hello
-            </Typography>
+            <Drawer anchor={'left'} open={drawerState}className={classes.drawer} classes={{
+          paper: classes.drawerPaper,
+        }} onClose={() => setDrawerState(false)}>
+            <List>
+              <ListItem button onClick={() => homeClicked()}>
+              <ListItemText primary="Home" />
+              </ListItem>
+              <ListItem button onClick={() => aboutClicked()}>
+              <ListItemText primary="About" />
+              </ListItem>
+            </List>
             </Drawer>
             </div>
           }
+          <Typography className={classes.title} component="h1" variant="h5">
+            Raahi
+          </Typography>
         </Toolbar>
       </AppBar>
-        <Display/>
+      <main
+        
+      >
+       {display && <Display/>}
+       {about && <About/>}
+      </main>
+
+
+       
     </React.Fragment>
   );
 }
