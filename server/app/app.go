@@ -51,6 +51,7 @@ type FullResponse struct {
 
 type TrailResponse struct {
 	Results []TrailInfo 
+	Origin  []float64
 	Error 	string
 }
 
@@ -615,6 +616,7 @@ func getErrorResponse(error string) *FullResponse {
 func getTrailErrorResponse(error string) *TrailResponse {
 	this := new(TrailResponse)
 	this.Results = nil
+	this.Origin = nil
 	this.Error = error
 	return this
 }
@@ -994,6 +996,7 @@ func ExecuteTrailRequest(address string) *TrailResponse {
 	} else {
 		this := new(TrailResponse)
 		this.Results = trails
+		this.Origin = []float64{lat, lng}
 		this.Error = ``
 		return this
 	}

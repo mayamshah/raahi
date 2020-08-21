@@ -167,6 +167,7 @@ function Display() {
   const classes = useStyles();
   const [result, setResult] = useState([]);
   const [trails, setTrails] = useState([]);
+  const [origin, setOrigin] = useState([]);
   const [currentAddress, setCurrentAddress] = useState("");
   const [currentMiles, setCurrentMiles] = useState("0");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -226,6 +227,7 @@ function Display() {
         if (res.data.Error == '') {
           console.log("No error")
           setTrails(res.data.Results)
+          setOrigin(res.data.Origin)
           setShowTrail(true)
           setShow(false)
           // setCurrentIndex(0)
@@ -410,7 +412,7 @@ function Display() {
                       <Grid item xs={12}>
                         <Grid container alignItems="flex-start" justify="center" direction="row">
                         <Tooltip title="Trails Near Me">
-                              <IconButton>
+                              <IconButton onClick={() => getTrailResult()}>
                                 <TimelineIcon fontSize="large"/>
                               </IconButton>
                         </Tooltip>
@@ -453,7 +455,7 @@ function Display() {
     }
     {showTrail && 
       <Paper className={classes.paper}>
-        <TrailViewer trails={trails}/>
+        <TrailViewer trails={trails} origin={origin}/>
       </Paper>
     }
     {showDirections &&
