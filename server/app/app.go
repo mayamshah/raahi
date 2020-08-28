@@ -266,6 +266,7 @@ func extractCoordinates(response []byte) (float64, float64) {
 	return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
 
+//finds nearest intersection to the given point
 func nearestIntersectionPoint(point Point) (Point, string) {
 
 	url := NINTERSECT_URL + strconv.FormatFloat(point.lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(point.lng, 'f', 6, 64) + GEOKEY
@@ -298,6 +299,7 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 
 }
 
+//queries Trail Run Project Database for trails near origin
 func getTrails(org Point) ([]TrailInfo, string) {
 	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxDistance=10&maxResults=8" + TRPKEY
 	response, err := apiRequest(url)
@@ -311,7 +313,6 @@ func getTrails(org Point) ([]TrailInfo, string) {
 	if respBody.Success == 0 {
 		return trailResult, `No trails found`
 	}
-	//fmt.Println(respBody)
 
 	for _, trail := range respBody.Trails {
 		temp := new(TrailInfo)
@@ -324,7 +325,6 @@ func getTrails(org Point) ([]TrailInfo, string) {
 		} else {
 			temp.Summary = trail.Summary
 		}
-		// fmt.Println(trail.Summary)
 		distFromOrg, err :=  distance(org.lat, org.lng, trail.Lat, trail.Lon)
 		if err != `` {
 			return *new([]TrailInfo), `distance error`
@@ -412,6 +412,7 @@ var squareRoute makeRoute = func(point Point, distance float64, offset float64) 
 	return []Point{p0, p1, p2}
 }
 
+//creates a equilateral triangle route
 var equilateralTriangle makeRoute = func(point Point, distance float64, offset float64) []Point {
 	sideLength := (distance / 3.0)
 
@@ -425,7 +426,7 @@ var equilateralTriangle makeRoute = func(point Point, distance float64, offset f
 	return []Point{p0, p1}
 }
 
-//isosceles
+//creates an isosceles right triangle route
 var rightTriangle makeRoute = func(point Point, distance float64, offset float64) []Point {
 	sideLength := distance / (2.0 + math.Sqrt(2.0))
 
@@ -439,7 +440,7 @@ var rightTriangle makeRoute = func(point Point, distance float64, offset float64
 	return []Point{p0, p1}
 }
 
-//isosceles
+//creates an isosceles right triangle route with right angle vertex not at origin
 var rightTriangleOther makeRoute = func(point Point, distance float64, offset float64) []Point {
 	sideLength := distance / (2.0 + math.Sqrt(2.0))
 	p0, err0 := getPoint(point, sideLength, offset+90.0,true)
@@ -481,6 +482,7 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, stri
 
 }
 
+//given url for directions request gives back information about distance of route as well as directions
 func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 	response, err := apiRequest(dirURL)
 	var result []LocOfTurn
@@ -510,6 +512,7 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 	return 0.0, result, respBody.Status
 }
 
+//given coordinates for routes, an origin, and a desired distance, returns information about the routes including distance and directions
 func getDistance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
 	var allDists []DistAndPath
 	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
@@ -579,6 +582,7 @@ func newFullResponse(results []ResponseNew) *FullResponse {
 	return this
 }
 
+//given an origin gets an initial error fix (ratio of desired distance to actual distance)
 func getInitFix(org Point) float64 {
 	p0, err0 := getPoint(org, .707107, 45.0, true)
 	p1, err1 := getPoint(org, .707107, 135.0, true)
@@ -594,7 +598,7 @@ func getInitFix(org Point) float64 {
 	return 4.0 / avg
 }
 
-//given an address, distance and route, finds a path
+//given an address, distance and route, finds paths
 func executeRequest(input string, distanceString string) *FullResponse {
 	var routeOrder []makeRoute
 	routeOrder = append(routeOrder, equilateralTriangle, equilateralTriangle, rightTriangle, rightTriangle, rightTriangleOther, rightTriangleOther, squareRoute, squareRoute, straightLine, straightLine)
