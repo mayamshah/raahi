@@ -14,6 +14,13 @@ import (
 	"github.com/twpayne/go-polyline"
 )
 
+type StravaResponse struct {
+	Path  				[]float64
+	Start 				[]float64
+	End   				[]float64
+	Error 				string
+}
+
 func polylineToPath(polyline strava.Polyline) []float64 {
 	coords := polyline.Decode()
 	path := []float64{}

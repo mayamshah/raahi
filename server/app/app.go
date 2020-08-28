@@ -22,186 +22,178 @@ const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
 const GEOKEY = "&username=gulab"
+const M_TO_MI = 0.00062137 //meters to miles ratio
 
 type Request struct {
-	Address  string `json:"address"`
-	Distance string `json:"distance"`
+	Address  			string 					`json:"address"`
+	Distance 			string 					`json:"distance"`
 }
 
 type TokenResposne struct {
-	AccessToken string `json:"accessToken"`
+	AccessToken 		string 					`json:"accessToken"`
 }
 
 type Response struct {
-	Path         [][]float64
-	Distance     []float64
-	PercentError float64
-	Error        string
+	Path         		[][]float64
+	Distance     		[]float64
+	PercentError 		float64
+	Error        		string
 }
 
 type FullResponse struct {
-	Results []ResponseNew
-	Error string
+	Results 			[]ResponseNew
+	Error 				string
 }
 
 type TrailResponse struct {
-	Results []TrailInfo 
-	Origin  []float64
-	Error 	string
+	Results 			[]TrailInfo 
+	Origin  			[]float64
+	Error 				string
 }
 
 type ResponseNew struct {
-	Org 		[]float64
-	Dest		[]float64
-	Path		[]float64
-	Distance 	float64
-	Directions 	[]LocOfTurn
-}
-
-type StravaResponse struct {
-	Path  []float64
-	Start []float64
-	End   []float64
-	Error string
+	Org 				[]float64
+	Dest				[]float64
+	Path				[]float64
+	Distance 			float64
+	Directions 			[]LocOfTurn
 }
 
 type GeocodeGeometry struct {
-	Location      map[string]interface{} `json:"location"`
-	Location_type string                 `json:"location_type"`
-	Viewport      interface{}            `json:"viewport"`
+	Location      		map[string]interface{}	`json:"location"`
+	LocationType 		string                 	`json:"location_type"`
+	Viewport      		interface{}            	`json:"viewport"`
 }
 
 type GeocodeResults struct {
-	Access_points      interface{}     `json:"access_points"`
-	Address_components interface{}     `json:"address_components"`
-	Formatted_address  string          `json:"formatted_address"`
-	Geometry           GeocodeGeometry `json:"geometry"`
-	Place_id           string          `json:"place_id"`
-	Plus_code          interface{}     `json:"plus_code"`
-	Types              interface{}     `json:"types"`
+	AccessPoints      	interface{}     		`json:"access_points"`
+	AddressComponents 	interface{}     		`json:"address_components"`
+	FormattedAddress  	string          		`json:"formatted_address"`
+	Geometry           	GeocodeGeometry 		`json:"geometry"`
+	PlaceID           	string          		`json:"place_id"`
+	PlusCode         	interface{}     		`json:"plus_code"`
+	Types              	interface{}     		`json:"types"`
 }
 
 type GeocodeResp struct {
-	Results []GeocodeResults `json:"results"`
-	Status  string           `json:"status"`
+	Results 			[]GeocodeResults 		`json:"results"`
+	Status  			string           		`json:"status"`
 }
 
 type ValText struct {
-	Value int    `json:"value"`
-	Text  string `json:"text"`
+	Value 				int    					`json:"value"`
+	Text  				string 					`json:"text"`
 }
 
 type DistanceElems struct {
-	Status   string  `json:"status"`
-	Duration ValText `json:"duration"`
-	Distance ValText `json:"distance"`
+	Status   			string  				`json:"status"`
+	Duration 			ValText 				`json:"duration"`
+	Distance 			ValText 				`json:"distance"`
 }
 
 type DistanceRows struct {
-	Elements []DistanceElems `json:"elements"`
+	Elements 			[]DistanceElems 		`json:"elements"`
 }
 
 type DistanceResp struct {
-	DestAdds []string       `json:"destination_addresses"`
-	OrgAdds  []string       `json:"origin_addresses"`
-	Rows     []DistanceRows `json:"rows"`
-	Status   string         `json:"status"`
+	DestAdds 			[]string       			`json:"destination_addresses"`
+	OrgAdds  			[]string       			`json:"origin_addresses"`
+	Rows     			[]DistanceRows 			`json:"rows"`
+	Status   			string         			`json:"status"`
 }
 
 type NearestPoint struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Latitude  			float64 				`json:"latitude"`
+	Longitude 			float64 				`json:"longitude"`
 }
 
 type NearestLocation struct {
-	Location      NearestPoint `json:"location"`
-	OriginalIndex int          `json:"originalIndex"`
-	PlaceId       string       `json:"placeId"`
+	Location      		NearestPoint 			`json:"location"`
+	OriginalIndex 		int          			`json:"originalIndex"`
+	PlaceID       		string       			`json:"placeId"`
 }
 type NearestResp struct {
-	SnappedPoints []NearestLocation `json:"snappedPoints"`
+	SnappedPoints 		[]NearestLocation 		`json:"snappedPoints"`
 }
 
 type NearIntersectResp struct {
-	Credits      string            `json:"credits"`
-	Intersection map[string]string `json:"intersection"`
+	Credits      		string            		`json:"credits"`
+	Intersection 		map[string]string 		`json:"intersection"`
 }
 
 type Point struct {
-	lat float64
-	lng float64
+	lat 				float64
+	lng 				float64
 }
 
 type DistAndPath struct {
-	path     []Point
-	distance float64
-	desired  float64
-	turns	 []LocOfTurn
+	path     			[]Point
+	distance 			float64
+	desired  			float64
+	turns	 			[]LocOfTurn
 }
 
 type Pt struct {
-	Lat 		float64		`json:"lat"`
-	Lng 		float64		`json:"lng"`
+	Lat 				float64					`json:"lat"`
+	Lng 				float64					`json:"lng"`
 }
 
 type Steps struct {
-	Maneuver			string 		`json:"maneuver"`
-	LocStep				Pt			`json:"start_location"`
-	LocStepEnd			Pt			`json:"end_location"`
-	Html_Instructions 	string 		`json:"html_instructions"`
-	Dist 				ValText  	`json:"distance"`
+	Maneuver			string 					`json:"maneuver"`
+	LocStep				Pt						`json:"start_location"`
+	LocStepEnd			Pt						`json:"end_location"`
+	HtmlInstructions 	string 					`json:"html_instructions"`
+	Dist 				ValText  				`json:"distance"`
 }
 
 type Legs struct {
-	Distance 	ValText		`json:"distance"`
-	Steps 		[]Steps 	`json:"steps"`
+	Distance 			ValText					`json:"distance"`
+	Steps 				[]Steps 				`json:"steps"`
 }
 
 type DirRoutes struct {
-	Bounds		interface{}	`json:"bounds"`
-	Copyright 	string		`json:"copyrights"`
-	Legs 		[]Legs		`json:"legs"`
+	Bounds				interface{}				`json:"bounds"`
+	Copyright 			string					`json:"copyrights"`
+	Legs 				[]Legs					`json:"legs"`
 }
 
 type DirResp struct {
-	Geowpts 	interface{} `json:"geocoded_waypoints"`
-	Rt 			[]DirRoutes `json:"routes"`
-	Status		string 		`json:"status"`
+	Geowpts 			interface{} 			`json:"geocoded_waypoints"`
+	Rt 					[]DirRoutes 			`json:"routes"`
+	Status				string 					`json:"status"`
 }
 
 type LocOfTurn struct {
-	Turn 			string
-	Instructions 	string
-	Loc				[]float64
-	EndLoc 			[]float64
+	Turn 				string
+	Instructions 		string
+	Loc					[]float64
+	EndLoc 				[]float64
 }
 
 type TrailInfo struct {
-	Name		string
-	Summary		string
-	Location	string
-	Length		float64
-	DistFromOrg	float64
-	Coords 		[]float64
+	Name				string
+	Summary				string
+	Location			string
+	Length				float64
+	DistFromOrg			float64
+	Coords 				[]float64
 }
 
 type Trails struct {
-	Name		string		`json:"name"`
-	Summary		string		`json:"summary"`
-	Location	string		`json:"location"`
-	Distance	float64		`json:"length"`
-	Lat			float64		`json:"latitude"`
-	Lon			float64		`json:"longitude"`
+	Name				string					`json:"name"`
+	Summary				string					`json:"summary"`
+	Location			string					`json:"location"`
+	Distance			float64					`json:"length"`
+	Lat					float64					`json:"latitude"`
+	Lon					float64					`json:"longitude"`
 }
 
 type TrailsResp struct {
-	Trails 		[]Trails	`json:"trails"`
-	Success		int			`json:"success"`
+	Trails 				[]Trails				`json:"trails"`
+	Success				int						`json:"success"`
 }
 
-
-
-type make_route func(point Point, distance float64, offset float64) []Point
+type makeRoute func(point Point, distance float64, offset float64) []Point
 
 //creates a new point
 func NewPoint(lat float64, lng float64) Point {
@@ -212,22 +204,22 @@ func NewPoint(lat float64, lng float64) Point {
 }
 
 //forms an address for an api call
-func address_to_api_call(address string) string {
+func addressToAPICall(address string) string {
 	//properly form the address for the api url
 	arr := strings.Split(address, " ")
-	var address_url string
+	var addressURL string
 	for _, s := range arr {
-		address_url += "+" + s
+		addressURL += "+" + s
 	}
-	address_url = strings.TrimPrefix(address_url, "+")
+	addressURL = strings.TrimPrefix(addressURL, "+")
 
 	//create the api url and get the json response
-	url := GEOCODE_URL + address_url + KEY
+	url := GEOCODE_URL + addressURL + KEY
 	return url
 }
 
 //makes a GET request at the given URL and checks for error
-func api_request(url string) ([]byte, string) {
+func apiRequest(url string) ([]byte, string) {
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -242,10 +234,10 @@ func api_request(url string) ([]byte, string) {
 }
 
 //Checks a GeoCode Response body for error
-func check_responseGeocode(response []byte) bool {
-	var resp_body GeocodeResp
-	json.Unmarshal(response, &resp_body)
-	status := resp_body.Status
+func checkResponseGeocode(response []byte) bool {
+	var respBody GeocodeResp
+	json.Unmarshal(response, &respBody)
+	status := respBody.Status
 	if status == "OK" {
 		return true
 	}
@@ -254,10 +246,10 @@ func check_responseGeocode(response []byte) bool {
 }
 
 //checks a Distance Reponse body for error
-func check_responseDistance(response []byte) bool {
-	var resp_body DistanceResp
-	json.Unmarshal(response, &resp_body)
-	status := resp_body.Status
+func checkResponseDistance(response []byte) bool {
+	var respBody DistanceResp
+	json.Unmarshal(response, &respBody)
+	status := respBody.Status
 	if status == "OK" {
 		return true
 	}
@@ -266,10 +258,10 @@ func check_responseDistance(response []byte) bool {
 }
 
 //Gets coordinates from a GeoCode Response Body
-func extract_coordinates(response []byte) (float64, float64) {
-	var resp_body GeocodeResp
-	json.Unmarshal(response, &resp_body)
-	coordinates := resp_body.Results[0].Geometry.Location
+func extractCoordinates(response []byte) (float64, float64) {
+	var respBody GeocodeResp
+	json.Unmarshal(response, &respBody)
+	coordinates := respBody.Results[0].Geometry.Location
 
 	return coordinates["lat"].(float64), coordinates["lng"].(float64)
 }
@@ -278,24 +270,24 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 
 	url := NINTERSECT_URL + strconv.FormatFloat(point.lat, 'f', 6, 64) + "&lng=" + strconv.FormatFloat(point.lng, 'f', 6, 64) + GEOKEY
 
-	response, err := api_request(url)
+	response, err := apiRequest(url)
 
 	if (err != ``) {
 		return *new(Point), err
 	}
 
-	var resp_body NearIntersectResp
-	json.Unmarshal(response, &resp_body)
+	var respBody NearIntersectResp
+	json.Unmarshal(response, &respBody)
 	var resLat float64
 	var resLng float64
 
-	if s1, err := strconv.ParseFloat(resp_body.Intersection["lat"], 64); err == nil {
+	if s1, err := strconv.ParseFloat(respBody.Intersection["lat"], 64); err == nil {
 		resLat = s1
 	} else {
 		return *new(Point), `No nearest intersection point found`
 	}
 
-	if s2, err := strconv.ParseFloat(resp_body.Intersection["lng"], 64); err == nil {
+	if s2, err := strconv.ParseFloat(respBody.Intersection["lng"], 64); err == nil {
 		resLng = s2
 	} else {
 		return *new(Point), `No nearest intersection point found`
@@ -308,20 +300,20 @@ func nearestIntersectionPoint(point Point) (Point, string) {
 
 func getTrails(org Point) ([]TrailInfo, string) {
 	url := TRAILS_URL + strconv.FormatFloat(org.lat, 'f', 6, 64) + "&lon=" + strconv.FormatFloat(org.lng, 'f', 6, 64) + "&maxDistance=10&maxResults=8" + TRPKEY
-	response, err := api_request(url)
+	response, err := apiRequest(url)
 	var trailResult []TrailInfo
 	if (err != ``) {
 		return trailResult, err
 	}
-	var resp_body TrailsResp
-	json.Unmarshal(response, &resp_body)
+	var respBody TrailsResp
+	json.Unmarshal(response, &respBody)
 
-	if resp_body.Success == 0 {
+	if respBody.Success == 0 {
 		return trailResult, `No trails found`
 	}
-	//fmt.Println(resp_body)
+	//fmt.Println(respBody)
 
-	for _, trail := range resp_body.Trails {
+	for _, trail := range respBody.Trails {
 		temp := new(TrailInfo)
 		temp.Name = trail.Name
 		temp.Location = trail.Location
@@ -337,8 +329,7 @@ func getTrails(org Point) ([]TrailInfo, string) {
 		if err != `` {
 			return *new([]TrailInfo), `distance error`
 		}
-		const mtoMi float64 = 0.00062137
-		temp.DistFromOrg = float64(distFromOrg) * mtoMi
+		temp.DistFromOrg = float64(distFromOrg) * M_TO_MI
 		temp.Coords = []float64{trail.Lat, trail.Lon}
 		trailResult = append(trailResult, *temp)
 	}
@@ -353,15 +344,15 @@ func getTrails(org Point) ([]TrailInfo, string) {
 }
 
 // given an origin, distance and angle, finds the corresponding point
-func get_point(point Point, distance float64, angle float64, runNearestIntersection bool) (Point, string){
+func getPoint(point Point, distance float64, angle float64, runNearestIntersection bool) (Point, string){
 	//angle is degrees
 	radians := angle * math.Pi / 180
-	distance_lat := 1 / (69 / distance)
-	one_degree_lng := math.Cos(point.lat*math.Pi/180) * EQUATOR_LENGTH
-	distance_lng := 1 / (one_degree_lng / distance)
+	distanceLat := 1 / (69 / distance)
+	oneDegreeLng := math.Cos(point.lat*math.Pi/180) * EQUATOR_LENGTH
+	distanceLng := 1 / (oneDegreeLng / distance)
 
-	lat := point.lat + math.Cos(radians)*distance_lat
-	lng := point.lng + math.Sin(radians)*distance_lng
+	lat := point.lat + math.Cos(radians)*distanceLat
+	lng := point.lng + math.Sin(radians)*distanceLng
 	
 	if (!runNearestIntersection) {
 		return NewPoint(lat, lng), ``
@@ -372,19 +363,17 @@ func get_point(point Point, distance float64, angle float64, runNearestIntersect
 
 //Given an origin, desired distance, number of different routes it wants and a function that
 //determines the shape of the route, returns a list of possible routes
-func create_routes(point Point, distance float64, numb float64, routeFunction make_route) [][]Point {
+func createRoutes(point Point, distance float64, numb float64, routeFunction makeRoute) [][]Point {
 	fmt.Println("Starting to create routes")
-	angle_increase := 360 / numb
+	angleIncrease := 360 / numb
 	num := int(numb)
 	var routes [][]Point
 	var wg sync.WaitGroup
 	wg.Add(num)
 	for i := 0; i < num; i++ {
-		// fmt.Println(offset)
-		// fmt.Println(i * angle_increase)
 		go func(i int) {
 			defer wg.Done()
-			route := routeFunction(point, distance, float64(i) * angle_increase)
+			route := routeFunction(point, distance, float64(i) * angleIncrease)
 			if (len(route) > 0) {
 				routes = append(routes, route)
 			}
@@ -396,9 +385,9 @@ func create_routes(point Point, distance float64, numb float64, routeFunction ma
 }
 
 //creates a straight line route
-var straight_line make_route = func(point Point, distance float64, offset float64) []Point {
+var straightLine makeRoute = func(point Point, distance float64, offset float64) []Point {
 
-	p0, err := get_point(point, distance/2, offset, true)
+	p0, err := getPoint(point, distance/2, offset, true)
 
 	if (err != ``) {
 		return []Point{}
@@ -408,28 +397,28 @@ var straight_line make_route = func(point Point, distance float64, offset float6
 }
 
 //creates a square route
-var square_route make_route = func(point Point, distance float64, offset float64) []Point {
+var squareRoute makeRoute = func(point Point, distance float64, offset float64) []Point {
 
-	side_length := (distance / 4)
+	sideLength := (distance / 4)
 
-	p0, err_0 := get_point(point, side_length, offset+135.0, true)
-	p1, err_1 := get_point(point, distance/4*math.Sqrt(2), offset+90.0, true)
-	p2, err_2 := get_point(point, side_length, offset+45.0, true)
+	p0, err0 := getPoint(point, sideLength, offset+135.0, true)
+	p1, err1 := getPoint(point, distance/4*math.Sqrt(2), offset+90.0, true)
+	p2, err2 := getPoint(point, sideLength, offset+45.0, true)
 
-	if (err_0 != `` || err_1 != `` || err_2 != ``) {
+	if (err0 != `` || err1 != `` || err2 != ``) {
 		return []Point{}
 	}
 
 	return []Point{p0, p1, p2}
 }
 
-var equilateral_triangle make_route = func(point Point, distance float64, offset float64) []Point {
-	side_length := (distance / 3.0)
+var equilateralTriangle makeRoute = func(point Point, distance float64, offset float64) []Point {
+	sideLength := (distance / 3.0)
 
-	p0, err_0 := get_point(point, side_length, offset+60.0,true)
-	p1, err_1 := get_point(point, side_length, offset+120.0,true)
+	p0, err0 := getPoint(point, sideLength, offset+60.0,true)
+	p1, err1 := getPoint(point, sideLength, offset+120.0,true)
 
-	if (err_0 != `` || err_1 != ``) {
+	if (err0 != `` || err1 != ``) {
 		return []Point{}
 	}
 
@@ -437,13 +426,13 @@ var equilateral_triangle make_route = func(point Point, distance float64, offset
 }
 
 //isosceles
-var right_triangle make_route = func(point Point, distance float64, offset float64) []Point {
-	side_length := distance / (2.0 + math.Sqrt(2.0))
+var rightTriangle makeRoute = func(point Point, distance float64, offset float64) []Point {
+	sideLength := distance / (2.0 + math.Sqrt(2.0))
 
-	p0, err_0 := get_point(point, side_length, offset,true)
-	p1, err_1 := get_point(point, side_length, offset+90.0,true)
+	p0, err0 := getPoint(point, sideLength, offset,true)
+	p1, err1 := getPoint(point, sideLength, offset+90.0,true)
 
-	if (err_0 != `` || err_1 != ``) {
+	if (err0 != `` || err1 != ``) {
 		return []Point{}
 	}
 
@@ -451,17 +440,17 @@ var right_triangle make_route = func(point Point, distance float64, offset float
 }
 
 //isosceles
-var right_triangleOther make_route = func(point Point, distance float64, offset float64) []Point {
-	side_length := distance / (2.0 + math.Sqrt(2.0))
-	p0, err_0 := get_point(point, side_length, offset+90.0,true)
+var rightTriangleOther makeRoute = func(point Point, distance float64, offset float64) []Point {
+	sideLength := distance / (2.0 + math.Sqrt(2.0))
+	p0, err0 := getPoint(point, sideLength, offset+90.0,true)
 	
-	if (err_0 != ``) {
+	if (err0 != ``) {
 		return []Point{}
 	}
 
-	p1, err_1 := get_point(p0, side_length, offset,true)
+	p1, err1 := getPoint(p0, sideLength, offset,true)
 
-	if (err_1 != ``) {
+	if (err1 != ``) {
 		return []Point{}
 	}
 
@@ -476,38 +465,38 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, stri
 	dstLng := strconv.FormatFloat(dLng, 'f', 6, 64)
 	urlCall := DISTANCE_URL + "origins=" + orgLat + "," + orgLng + "&destinations=" + dstLat + "," + dstLng + MODE + KEY
 	
-	response, err := api_request(urlCall)
+	response, err := apiRequest(urlCall)
 	if (err != ``) {
 		return 0, err
 	}
 
-	if !check_responseDistance(response) {
+	if !checkResponseDistance(response) {
 		return 0, "Response Distance Status not okay"
 	}
 
-	var resp_body DistanceResp
-	json.Unmarshal(response, &resp_body)
+	var respBody DistanceResp
+	json.Unmarshal(response, &respBody)
 
-	return resp_body.Rows[0].Elements[0].Distance.Value, ``
+	return respBody.Rows[0].Elements[0].Distance.Value, ``
 
 }
 
 func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
-	response, err := api_request(dirURL)
+	response, err := apiRequest(dirURL)
 	var result []LocOfTurn
 	if (err != ``) {
 		return 0.0, result, err
 	}
 
-	var resp_body DirResp
-	json.Unmarshal(response, &resp_body)
+	var respBody DirResp
+	json.Unmarshal(response, &respBody)
 
-	if (resp_body.Status == "OK") {
+	if (respBody.Status == "OK") {
 		tempDist := 0
-		for _, v := range resp_body.Rt[0].Legs[0].Steps {
+		for _, v := range respBody.Rt[0].Legs[0].Steps {
 			turnLocs := new(LocOfTurn)
 			turnLocs.Turn = v.Maneuver
-			turnLocs.Instructions = v.Html_Instructions
+			turnLocs.Instructions = v.HtmlInstructions
 			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
 			tempEnd := []float64{v.LocStepEnd.Lat, v.LocStepEnd.Lng}
 			turnLocs.Loc = temp
@@ -516,13 +505,12 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			tempDist += v.Dist.Value
 		}
 		return float64(tempDist), result, ""
-		//return float64(resp_body.Rt[0].Legs[0].Distance.Value), result, ""
 	}
 	fmt.Println("Status not okay")
-	return 0.0, result, resp_body.Status
+	return 0.0, result, respBody.Status
 }
 
-func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
+func getDistance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
 	var allDists []DistAndPath
 	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
 	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
@@ -547,12 +535,9 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPat
 			tempUrl = strings.TrimSuffix(tempUrl, "|")
 			url := tempUrl + KEY
 			dist, turnLocs, err := distanceHelp(url)
-			// fmt.Println(turnLocs)
-			// fmt.Println(dist * 0.00062137, "for above turns")
 			if (err == ``) {
 				// convert output in meters to miles
-				const mtoMi float64 = 0.00062137
-				distMi := dist * mtoMi
+				distMi := dist * M_TO_MI
 				sumDist += distMi
 				//only includes paths which are at least the desired length and at most desired length + 1 mi
 				if ((distMi > desired) && (distMi < (desired + 1))) {
@@ -594,66 +579,62 @@ func newFullResponse(results []ResponseNew) *FullResponse {
 	return this
 }
 
-func getOGFix(org Point) float64 {
-	p0, err_0 := get_point(org, .707107, 45.0, true)
-	p1, err_1 := get_point(org, .707107, 135.0, true)
-	p2, err_2 := get_point(org, .707107, 225.0, true)
-	p3, err_3 := get_point(org, .707107, 315.0, true)
+func getInitFix(org Point) float64 {
+	p0, err0 := getPoint(org, .707107, 45.0, true)
+	p1, err1 := getPoint(org, .707107, 135.0, true)
+	p2, err2 := getPoint(org, .707107, 225.0, true)
+	p3, err3 := getPoint(org, .707107, 315.0, true)
 
-	if (err_0 != `` || err_1 != `` || err_2 != `` || err_3 != ``) {
+	if (err0 != `` || err1 != `` || err2 != `` || err3 != ``) {
 		return 1.0
 	}
 	var ptRoute [][]Point
 	ptRoute = append(ptRoute, []Point{p1, p2, p3})
-	_, avg := get_distance(ptRoute, p0, 4.0)
-	fmt.Println(avg)
+	_, avg := getDistance(ptRoute, p0, 4.0)
 	return 4.0 / avg
 }
 
 //given an address, distance and route, finds a path
-func execute_request(input string, distance_string string) *FullResponse {
-	var routeOrder []make_route
-	routeOrder = append(routeOrder, equilateral_triangle, equilateral_triangle, right_triangle, right_triangle, right_triangleOther, right_triangleOther, square_route, square_route, straight_line, straight_line)
+func executeRequest(input string, distanceString string) *FullResponse {
+	var routeOrder []makeRoute
+	routeOrder = append(routeOrder, equilateralTriangle, equilateralTriangle, rightTriangle, rightTriangle, rightTriangleOther, rightTriangleOther, squareRoute, squareRoute, straightLine, straightLine)
 	//convert distance to float64
 	//check to see if distance is a proper number
-	distance, err := strconv.ParseFloat(distance_string, 64)
+	distance, err := strconv.ParseFloat(distanceString, 64)
 	if err != nil {
 		return getErrorResponse("Not a valid distance")
 	}
 
 	//form url from address
-	url := address_to_api_call(input)
+	url := addressToAPICall(input)
 
 	//get response from google api server
-	response, error := api_request(url)
+	response, error := apiRequest(url)
 
 	if (error != ``) {
 		return getErrorResponse(error)
 	}
 
 	//check to see if address exists
-	if !check_responseGeocode(response) {
+	if !checkResponseGeocode(response) {
 		return getErrorResponse("Address does not exist")
 	}
 
 	//get the latitude and longitude
-	lat, lng := extract_coordinates(response)
+	lat, lng := extractCoordinates(response)
 	origin := NewPoint(lat, lng)
 	fmt.Println(origin)
 
-	// getTrails(origin)
-	// return getErrorResponse(`hey`)
-
-	ogFix := getOGFix(origin)
-	fmt.Println(ogFix)
+	initFix := getInitFix(origin)
+	fmt.Println(initFix)
 	//get the possible routes
-	routes := create_routes(origin, distance*(ogFix), 8.0, routeOrder[0])
+	routes := createRoutes(origin, distance*(initFix), 8.0, routeOrder[0])
 
 	desired := distance
-	pathDetails, avgDist := get_distance(routes, origin, float64(desired))
+	pathDetails, avgDist := getDistance(routes, origin, float64(desired))
 	fmt.Println(avgDist)
-	error_fix := desired / avgDist
-	fmt.Println(error_fix)
+	errorFix := desired / avgDist
+	fmt.Println(errorFix)
 	attempts := 0
 	for len(pathDetails) < 8 {
 		attempts += 1
@@ -664,13 +645,13 @@ func execute_request(input string, distance_string string) *FullResponse {
 		fmt.Println(len(pathDetails), "returnable routes")
 		fmt.Println("attempt", attempts)
 		if attempts % 2 == 0 {
-			error_fix = 1.0
+			errorFix = 1.0
 		}
-		fmt.Println("with error fix of", error_fix)
-		routes = create_routes(origin, distance*(error_fix)*(ogFix), 8.0, routeOrder[attempts])
-		morePaths, avgDist := get_distance(routes, origin, float64(desired))
+		fmt.Println("with error fix of", errorFix)
+		routes = createRoutes(origin, distance*(errorFix)*(initFix), 8.0, routeOrder[attempts])
+		morePaths, avgDist := getDistance(routes, origin, float64(desired))
 		fmt.Println(avgDist, desired)
-		error_fix = desired / avgDist
+		errorFix = desired / avgDist
 		pathDetails = append(pathDetails, morePaths...)
 
 	}
@@ -729,7 +710,7 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 
 	var req Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance)); err != nil {
+	if err := json.NewEncoder(w).Encode(executeRequest(req.Address, req.Distance)); err != nil {
 		json.NewEncoder(w).Encode(getErrorResponse(fmt.Sprintf(`%s`, err)))
 	}
 }
@@ -737,21 +718,21 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 func ExecuteTrailRequest(address string) *TrailResponse {
 
 	//form url from address
-	url := address_to_api_call(address)
+	url := addressToAPICall(address)
 
 	//get response from google api server
-	response, error := api_request(url)
+	response, error := apiRequest(url)
 	if (error != ``) {
 		return getTrailErrorResponse(error)
 	}
 
 	//check to see if address exists
-	if !check_responseGeocode(response) {
+	if !checkResponseGeocode(response) {
 		return getTrailErrorResponse("Address does not exist")
 	}
 
 	//get the latitude and longitude
-	lat, lng := extract_coordinates(response)
+	lat, lng := extractCoordinates(response)
 	origin := NewPoint(lat, lng)
 
 	trails, error := getTrails(origin)
@@ -804,25 +785,25 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 	temp.Distance = 1.39870387
 
 
-	stop_1 := new(LocOfTurn)
-	stop_1.Instructions = "Head <b>south</b> on <b>Palmtag Dr</b> toward <b>Bellwood Dr</b>"
-	stop_1.Loc = []float64{37.2862401,  -122.0078964}
-	stop_1.EndLoc = []float64{37.2862401,  -122.0078964}
-	stop_1.Turn =  ""
+	stop1 := new(LocOfTurn)
+	stop1.Instructions = "Head <b>south</b> on <b>Palmtag Dr</b> toward <b>Bellwood Dr</b>"
+	stop1.Loc = []float64{37.2862401,  -122.0078964}
+	stop1.EndLoc = []float64{37.2862401,  -122.0078964}
+	stop1.Turn =  ""
 
-	stop_2 := new(LocOfTurn)
-	stop_2.Instructions = "Turn <b>right</b> onto <b>Bellwood Dr</b>"
-	stop_2.Loc = []float64{37.2856419, -122.0080037}
-	stop_2.EndLoc = []float64{37.2862401,  -122.0078964}
-	stop_2.Turn =  "turn-right"
+	stop2 := new(LocOfTurn)
+	stop2.Instructions = "Turn <b>right</b> onto <b>Bellwood Dr</b>"
+	stop2.Loc = []float64{37.2856419, -122.0080037}
+	stop2.EndLoc = []float64{37.2862401,  -122.0078964}
+	stop2.Turn =  "turn-right"
 
-	stop_3 := new(LocOfTurn)
-	stop_3.Instructions = "Turn <b>left</b> onto <b>Titus Ave</b>"
-	stop_3.Loc = []float64{37.2857637, -122.0100177}
-	stop_3.EndLoc = []float64{37.2862401,  -122.0078964}
-	stop_3.Turn =  "turn-left"
+	stop3 := new(LocOfTurn)
+	stop3.Instructions = "Turn <b>left</b> onto <b>Titus Ave</b>"
+	stop3.Loc = []float64{37.2857637, -122.0100177}
+	stop3.EndLoc = []float64{37.2862401,  -122.0078964}
+	stop3.Turn =  "turn-left"
 
-	temp.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+	temp.Directions = []LocOfTurn{*stop1, *stop2, *stop3}
 
 
 
@@ -832,7 +813,7 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 	temp2.Path = []float64{37.2866, -122.01331, 37.28257, -122.01174, 37.28244, -122.00863}
 	temp2.Distance = 1.39870387
 
-	temp2.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+	temp2.Directions = []LocOfTurn{*stop1, *stop2, *stop3}
 
 	temp3 := new(ResponseNew)
 	temp3.Org = []float64{37.2862852, -122.0081542}
@@ -840,7 +821,7 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 	temp3.Path = []float64{37.28352, -122.01188, 37.28181, -122.00754, 37.2837, -122.00532}
 	temp3.Distance = 1.39870387
 
-	temp3.Directions = []LocOfTurn{*stop_1, *stop_2, *stop_3}
+	temp3.Directions = []LocOfTurn{*stop1, *stop2, *stop3}
 
 	response := newFullResponse([]ResponseNew{*temp, *temp2, *temp3})
 	fmt.Println(response)
