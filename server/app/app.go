@@ -1,20 +1,15 @@
 package app
 
 import (
-	// "bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
-
-	// "os"
 	"sort"
 	"strconv"
 	"strings"
-	"github.com/strava/go.strava"
 	"sync"
-	"github.com/twpayne/go-polyline"
 )
 
 const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
@@ -375,38 +370,12 @@ func get_point(point Point, distance float64, angle float64, runNearestIntersect
     return nearestIntersectionPoint(NewPoint(lat, lng))
 }
 
-func points_to_angle(p1 Point, p2 Point) float64 {
-	slope := (p2.lng - p1.lng) / (p1.lat - p2.lat)
-	radians := math.Atan(slope)
-	degrees := radians * 180 / math.Pi
-	return degrees
-
-}
-
-func get_offset(point Point) float64 {
-	url := NEAREST_RODE_URL + strconv.FormatFloat(point.lat, 'f', 6, 64) + "," + strconv.FormatFloat(point.lng, 'f', 6, 64) + KEY
-	response, err := api_request(url)
-	if (err != ``) {
-		// this is okay because we can still try to make a request if offset doesnt exist
-		return 0.0
-	}
-	var resp_body NearestResp
-	json.Unmarshal(response, &resp_body)
-	new_point := NewPoint(resp_body.SnappedPoints[0].Location.Latitude, resp_body.SnappedPoints[0].Location.Longitude)
-	angle := points_to_angle(point, new_point)
-	fmt.Println(angle)
-	return angle
-}
-
 //Given an origin, desired distance, number of different routes it wants and a function that
 //determines the shape of the route, returns a list of possible routes
 func create_routes(point Point, distance float64, numb float64, routeFunction make_route) [][]Point {
 	fmt.Println("Starting to create routes")
 	angle_increase := 360 / numb
 	num := int(numb)
-	//seems to me like it works better without offset
-	//offset := get_offset(point)
-	// offset := 0.0
 	var routes [][]Point
 	var wg sync.WaitGroup
 	wg.Add(num)
@@ -524,7 +493,6 @@ func distance(oLat float64, oLng float64, dLat float64, dLng float64) (int, stri
 }
 
 func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
-	//fmt.Println(dirURL)
 	response, err := api_request(dirURL)
 	var result []LocOfTurn
 	if (err != ``) {
@@ -543,7 +511,6 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 			temp := []float64{v.LocStep.Lat, v.LocStep.Lng}
 			tempEnd := []float64{v.LocStepEnd.Lat, v.LocStepEnd.Lng}
 			turnLocs.Loc = temp
-			// angle := points_to_angle(NewPoint(v.LocStep.Lat, v.LocStep.Lng), NewPoint(v.LocStepEnd.Lat, v.LocStep.Lng))
 			turnLocs.EndLoc = tempEnd
 			result = append(result, *turnLocs)
 			tempDist += v.Dist.Value
@@ -561,7 +528,6 @@ func get_distance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPat
 	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
 	sumDist := 0.0
 	numPaths := len(pathSlice)
-	//unfortunately this happens sometimes because of no nearest intersections
 	if numPaths == 0 {
 		return allDists, desired
 	}
@@ -626,23 +592,6 @@ func newFullResponse(results []ResponseNew) *FullResponse {
 	this.Results = results
 	this.Error = ``
 	return this
-}
-
-func getOGFixHex(org Point) float64 {
-	p0, err_0 := get_point(org, .5, 0.0, true)
-	p1, err_1 := get_point(org, .5, 60.0, true)
-	p2, err_2 := get_point(org, .5, 120.0, true)
-	p3, err_3 := get_point(org, .5, 180.0, true)
-	p4, err_4 := get_point(org, .5, 240.0, true)
-	p5, err_5 := get_point(org, .5, 300.0, true)
-	if (err_0 != `` || err_1 != `` || err_2 != `` || err_3 != `` || err_4 != `` || err_5 != ``) {
-		return 1.0
-	}
-	var ptRoute [][]Point
-	ptRoute = append(ptRoute, []Point{p1, p2, p3, p4, p5})
-	_, avg := get_distance(ptRoute, p0, 3.0)
-	fmt.Println(avg)
-	return 3.0 / avg
 }
 
 func getOGFix(org Point) float64 {
@@ -762,7 +711,6 @@ func execute_request(input string, distance_string string) *FullResponse {
 		return len(result[i].Path) > len(result[i].Path)
 	})
 
-
 	if len(result) > 8 {
 		//only want best 8 if there are more then 8
 		result = result[0:8]
@@ -770,8 +718,6 @@ func execute_request(input string, distance_string string) *FullResponse {
 
 	return newFullResponse(result)
 }
-
-
 
 
 func Execute(w http.ResponseWriter, r *http.Request) {
@@ -783,191 +729,10 @@ func Execute(w http.ResponseWriter, r *http.Request) {
 
 	var req Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	//path, distance, percent_error, err := execute_request(req.Address, req.Distance, 1.0)
-	//json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
 	if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance)); err != nil {
 		json.NewEncoder(w).Encode(getErrorResponse(fmt.Sprintf(`%s`, err)))
 	}
 }
-
-func polylineToPath(polyline strava.Polyline) []float64 {
-	coords := polyline.Decode()
-	path := []float64{}
-	for _, coord := range coords {
-		path = append(path, coord[0])
-		path = append(path, coord[1])
-	}
-
-	return path
-}
-
-func pathToPolyline(path []float64) string {
-	var coords [][]float64
-	for i := 0; i < (len(path) / 2); i+=2 {
-		temp := []float64{path[i], path[i + 1]}
-		//fmt.Println(temp)
-		coords = append(coords, temp)
-	}
-	//fmt.Println(coords)
-	poly := fmt.Sprintf("%s", polyline.EncodeCoords(coords))
-	// fmt.Println(poly)
-	// tempo, _, _ := polyline.DecodeCoords([]byte(poly))
-	// fmt.Printf("%v\n", tempo)
-	return poly
-}
-
-func ExecuteStravaRequest(input string, distance_string string, radius_string string, error_fix float64, accessToken string) *FullResponse {
-	//check to see if radius is a proper number
-	radius, err := strconv.ParseFloat(radius_string, 64)
-	if err != nil {
-		return getErrorResponse("Not a valid radius")
-	}
-
-	//form url from address
-	url := address_to_api_call(input)
-
-	//get response from google api server
-	response, error := api_request(url)
-	if (error != ``) {
-		return getErrorResponse(error)
-	}
-
-	//check to see if address exists
-	if !check_responseGeocode(response) {
-		return getErrorResponse("Address doesn't exist")
-	}
-
-	//get the latitude and longitude
-	lat, lng := extract_coordinates(response)
-	origin := NewPoint(lat, lng)
-
-	//get the points for teh request
-	top_right, error := get_point(origin, radius/2, 45, false)
-	if (error != ``) {
-		return getErrorResponse(error)
-	}
-	bottom_left, error := get_point(origin, radius/2, 45+180, false)
-	if (error != ``) {
-		return getErrorResponse(error)
-	}
-	// fmt.Println(top_right)
-	// fmt.Println(bottom_left)
-	client := strava.NewClient(accessToken)
-	SegmentCall := strava.NewSegmentsService(client).Explore(bottom_left.lat, bottom_left.lng, top_right.lat, top_right.lng)
-	SegmentCall.ActivityType("running")
-	SegmentCall.MinimumCategory(1)
-	SegmentCall.MaximumCategory(100)
-
-	responses, err := SegmentCall.Do()
-	if err != nil {
-		return getErrorResponse(fmt.Sprintf(`%s`, err))
-	}
-
-	//fmt.Println(len(responses))
-
-	if len(responses) <= 0 {
-		return getErrorResponse(`No routes found`)
-	}
-
-	distance, err := strconv.ParseFloat(distance_string, 64)
-	if err != nil {
-		return getErrorResponse(`Not a valid distance`)
-	}
-	const mtoMi float64 = 0.00062137
-
-	var wg sync.WaitGroup
-	wg.Add(len(responses))
-
-	var result []ResponseNew
-	for i := 0; i < len(responses); i++ {
-		go func (i int) {
-			defer wg.Done()
-			temp := new(ResponseNew)
-			temp.Org = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
-			temp.Dest = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
-			oLat := strconv.FormatFloat(temp.Org[0], 'f', 6, 64)
-			oLng := strconv.FormatFloat(temp.Org[1], 'f', 6, 64)
-			dLat := strconv.FormatFloat(temp.Dest[0], 'f', 6, 64)
-			dLng := strconv.FormatFloat(temp.Dest[1], 'f', 6, 64)
-			path := polylineToPath(responses[i].Polyline)
-			//too many waypoints, limiting to 23 would lose a lot of info about segment
-			if (len(path) < (23 * 2 * 2)) {
-				//limits to 23 waypoints
-				if (len(path) > (23 * 2)) {
-					var lessPath []float64
-					removeNum := len(path) / 2 - 23
-					increm := len(path) / 2 / removeNum
-					if increm == 1 { fmt.Println("should not get here") } 
-					j := 0
-					for i := 0; i < len(path); i+=2 {
-						j += 1
-						if (j + 1) % increm != 0 {
-							lessPath = append(lessPath, path[i], path[i + 1])
-						}
-					}
-					path = lessPath
-				}
-				temp.Path = path
-				tempPolyline := pathToPolyline(path)
-				dirURL := "https://maps.googleapis.com/maps/api/directions/json?origin=" + oLat + "," + oLng + "&destination=" + dLat + "," + dLng + MODE + "&waypoints=via:enc:" + tempPolyline + ":" + KEY
-				dist, turnLocs, err := distanceHelp(dirURL)
-				if err == `` {
-					// temp.Distance = responses[i].Distance*mtoMi
-					temp.Distance = dist*mtoMi //we're returning a modified route we should return the appropriate distance
-					temp.Directions = turnLocs
-					result = append(result, *temp)
-				}
-			}
-		} (i)
-		
-	}
-	wg.Wait()
-
-	if len(result) <= 0 {
-		return getErrorResponse(`No displayable routes found`)
-	}
-
-	//sorts difference desired distance from path distance from least to greatest
-	sort.SliceStable(result, func(i, j int) bool {
-		return math.Abs(result[i].Distance-distance) < math.Abs(result[j].Distance-distance)
-	})
-
-	//return max 4 strava responses
-	if len(result) > 4 {
-		result = result[0:4]
-	}
-
-	return newFullResponse(result)
-
-}
-
-func ExecuteStrava(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	var req Request
-	_ = json.NewDecoder(r.Body).Decode(&req)
-
-	// get token from python client 
-	// resp, err := api_request("http://localhost:5000/token")
-
-	// if (err != ``) {
-	// 	json.NewEncoder(w).Encode(getErrorResponse(err))
-	// 	return
-	// }
-
-	// var resp_body TokenResposne
-	// json.Unmarshal(resp, &resp_body)
-
-	StravaResponse := ExecuteStravaRequest(req.Address, req.Distance, "10", 1.0, `9ce41b35c7a159db331d3b0ae624ea8ced8ce595`)
-	if err := json.NewEncoder(w).Encode(StravaResponse); err != nil {
-		json.NewEncoder(w).Encode(getErrorResponse(fmt.Sprintf(`%s`, err)))
-	}
-}
-
 
 func ExecuteTrailRequest(address string) *TrailResponse {
 
@@ -1083,187 +848,3 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 
 }
-
-// func main() {
-
-// 	// setup the scanner
-// 	scanner := bufio.NewScanner(os.Stdin)
-
-// 	//ask for address
-// 	fmt.Printf("Enter your address in the following format: Street Address, City, State\n")
-
-// 	//read user input
-// 	var input string
-// 	for scanner.Scan() {
-// 		input = scanner.Text()
-// 		if strings.Contains(input, "") {
-// 			break
-// 		}
-// 	}
-
-// 	// ask for distance
-// 	// fmt.Printf("Enter desired distance in miles\n")
-
-// 	// read user input
-// 	// var distance string
-// 	// for scanner.Scan() {
-// 	// 	distance = scanner.Text()
-// 	// 	if strings.Contains(distance, "") {
-// 	// 		break
-// 	// 	}
-// 	// }
-// 	distance := "15"
-// 	execute_request(input, distance)
-// 	fmt.Println("strava response below")
-// 	//ExecuteStravaRequest(input, distance, "10", 1.0, `ed4e4b53c5bff4a4795e4cf183a42e4f259a6d67`)
-// }
-	// best_distance_index := 0
-	// best_distance_difference := math.Abs(distance - responses[0].Distance)
-	// for i, resp := range responses {
-	// 	if math.Abs(distance-resp.Distance) < best_distance_difference {
-	// 		best_distance_index = i
-	// 		best_distance_difference = math.Abs(distance - resp.Distance)
-	// 	}
-	// }
-
-	//start := responses[0].StartLocation
-	//end := responses[0].EndLocation
-	// path := polylineToPath(responses[0].Polyline)
-	// fmt.Println(path)
-	// if (len(path) > (23 * 2)) {
-	// 	lessPath := make([]float64, 23 * 2)
-	// 	incr := len(path) / 2 / 23
-	// 	for i := 0; i < 46; i+=2 {
-	// 		lessPath[i] = path[i * incr]
-	// 		lessPath[i + 1] = path[i * incr + 1]
-	// 	}
-	// 	path = lessPath
-	// }
-	// resPaths := make([][]float64, len(responses))
-	// resStarts := make([][]float64, len(responses))
-	// resEnds := make([][]float64, len(responses))
-	// var resDists []float64
-	// for i := 0; i < len(responses); i++ {
-	// 	resPaths[i] = polylineToPath(responses[i].Polyline)
-	// 	resStarts[i] = []float64{responses[i].StartLocation[0], responses[i].StartLocation[1]}
-	// 	resEnds[i] = []float64{responses[i].EndLocation[0], responses[i].EndLocation[1]}
-	// 	resDists = append(resDists, responses[i].Distance*mtoMi)
-	// }
-	// fmt.Println(resPaths)
-	// fmt.Println(resStarts)
-	// fmt.Println(resEnds)
-	// fmt.Println(resDists)
-
-	//@Agam what does this do?
-	//it creates a 2d array of the appropriate size
-	// resPaths := make([][]float64, len(pathDetails))
-	// var resDists []float64
-
-	// var i int
-	// for _, elem := range pathDetails {
-	// 	fmt.Println(elem)
-	// 	resPaths[i] = append(resPaths[i], origin.lat, origin.lng)
-	
-	// 	for _, pt := range pathDetails[i].path {
-	// 		curLat := pt.lat
-	// 		curLng := pt.lng
-	// 		resPaths[i] = append(resPaths[i], curLat, curLng)
-	// 	}
-	// 	resDists = append(resDists, pathDetails[i].distance)
-	// 	i++
-	// }
-
-	//given paths, origin, and desired distance, returns slice of all distance lengths and paths
-// func getDistance(pathSlice [][]Point, org Point, desired float64) []DistAndPath {
-// 	var allDists []DistAndPath
-// 	for _, v := range pathSlice {
-
-// 		totalDist := 0
-// 		prevLat := org.lat
-// 		prevLng := org.lng
-// 		overall_error := ``
-// 		for _, x := range v {
-// 			curLat := x.lat
-// 			curLng := x.lng
-// 			some, err  := distance(prevLat, prevLng, curLat, curLng)
-// 			if (err == ``) {
-// 				totalDist += some 
-// 			} else {
-// 				overall_error = err
-// 				break
-// 			}
-// 			prevLat = curLat
-// 			prevLng = curLng
-// 		}
-
-// 		some, err := distance(prevLat, prevLng, org.lat, org.lng)
-// 		totalDist += some
-
-// 		if (overall_error == `` && err == ``) {
-// 			// convert output in meters to miles
-// 			const mtoMi float64 = 0.00062137
-// 			//only includes paths which are at least the desired length
-// 			if float64(totalDist)*mtoMi > desired {
-// 				// if true {
-// 				temp := new(DistAndPath)
-// 				temp.distance = float64(totalDist) * mtoMi
-// 				temp.path = v
-// 				temp.desired = desired
-// 				allDists = append(allDists, *temp)
-// 			}
-// 		}
-
-// 	}
-
-// 	return allDists
-// }
-	//percent_error := (pathDetails[0].distance - pathDetails[0].desired) / pathDetails[0].desired * 100
-	//Outputs best path with distance and percent error
-
-	// func get_distance_sequential(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath, float64) {
-	// 	var allDists []DistAndPath
-	// 	oLat := strconv.FormatFloat(org.lat, 'f', 6, 64)
-	// 	oLng := strconv.FormatFloat(org.lng, 'f', 6, 64)
-	// 	sumDist := 0.0
-	// 	for _, v := range pathSlice {
-	// 		tempUrl := "https://maps.googleapis.com/maps/api/directions/json?origin=" + oLat + "," + oLng + "&destination=" + oLat + "," + oLng + MODE + "&waypoints="
-	// 		for _, x := range v {
-	// 			cLat := strconv.FormatFloat(x.lat, 'f', 6, 64)
-	// 			cLng := strconv.FormatFloat(x.lng, 'f', 6, 64)
-	// 			tempUrl = tempUrl + "via:" + cLat + "," + cLng + "|"
-	// 		}
-	// 		tempUrl = strings.TrimSuffix(tempUrl, "|")
-	// 		url := tempUrl + KEY
-	// 		dist, turnLocs, err := distanceHelp(url)
-	// 		// fmt.Println(turnLocs)
-	// 		// fmt.Println(dist * 0.00062137, "for above turns")
-	// 		if (err == ``) {
-	// 			// convert output in meters to miles
-	// 			const mtoMi float64 = 0.00062137
-	// 			distMi := dist * mtoMi
-	// 			sumDist += distMi
-	// 			//only includes paths which are at least the desired length and at most desired length + 1 mi
-	// 			if ((distMi > desired) && (distMi < (desired + 1))) {
-	// 				temp := new(DistAndPath)
-	// 				temp.distance = distMi
-	// 				temp.path = v
-	// 				temp.desired = desired
-	// 				temp.turns = turnLocs
-	// 				allDists = append(allDists, *temp)
-	// 			}
-	// 		}
-	// 	}
-	// 	return allDists, sumDist / float64(len(pathSlice))
-	// }
-
-	// var req Request
-	// if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-	// //path, distance, percent_error, err := execute_request(req.Address, req.Distance, 1.0)
-	// //json.NewEncoder(w).Encode(newResponse(path, distance, percent_error, err))
-	// if err := json.NewEncoder(w).Encode(execute_request(req.Address, req.Distance, 1.0)); err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
