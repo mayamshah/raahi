@@ -339,7 +339,6 @@ func getTrails(org Point) ([]TrailInfo, string) {
 	sort.SliceStable(trailResult, func(i, j int) bool {
 		return trailResult[i].DistFromOrg < trailResult[j].DistFromOrg
 	})
-	fmt.Println(trailResult)
 	return trailResult, ``
 }
 
@@ -364,7 +363,6 @@ func getPoint(point Point, distance float64, angle float64, runNearestIntersecti
 //Given an origin, desired distance, number of different routes it wants and a function that
 //determines the shape of the route, returns a list of possible routes
 func createRoutes(point Point, distance float64, numb float64, routeFunction makeRoute) [][]Point {
-	fmt.Println("Starting to create routes")
 	angleIncrease := 360 / numb
 	num := int(numb)
 	var routes [][]Point
@@ -380,7 +378,6 @@ func createRoutes(point Point, distance float64, numb float64, routeFunction mak
 		} (i)
 	}
 	wg.Wait()
-	fmt.Println("Finished creating routes")
 	return routes
 }
 
@@ -508,7 +505,6 @@ func distanceHelp(dirURL string) (float64, []LocOfTurn, string) {
 		}
 		return float64(tempDist), result, ""
 	}
-	fmt.Println("Status not okay")
 	return 0.0, result, respBody.Status
 }
 
@@ -522,7 +518,6 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath
 	if numPaths == 0 {
 		return allDists, desired
 	}
-	fmt.Println("Starting to get distances")
 	var wg sync.WaitGroup
 	wg.Add(numPaths)
 
@@ -555,8 +550,7 @@ func getDistance(pathSlice [][]Point, org Point, desired float64) ([]DistAndPath
 		} (i)
 	}
 	wg.Wait()
-	fmt.Println("Finished getting distances")
-	fmt.Println(sumDist, len(pathSlice))
+
 	return allDists, sumDist / float64(numPaths)
 }
 
@@ -627,34 +621,28 @@ func executeRequest(input string, distanceString string) *FullResponse {
 	//get the latitude and longitude
 	lat, lng := extractCoordinates(response)
 	origin := NewPoint(lat, lng)
-	fmt.Println(origin)
 
 	initFix := getInitFix(origin)
-	fmt.Println(initFix)
+
 	//get the possible routes
 	routes := createRoutes(origin, distance*(initFix), 8.0, routeOrder[0])
 
 	desired := distance
 	pathDetails, avgDist := getDistance(routes, origin, float64(desired))
-	fmt.Println(avgDist)
+
 	errorFix := desired / avgDist
-	fmt.Println(errorFix)
+
 	attempts := 0
 	for len(pathDetails) < 8 {
 		attempts += 1
 		if attempts > 9 {
-			fmt.Println(`At least we tried`)
 			break
 		}
-		fmt.Println(len(pathDetails), "returnable routes")
-		fmt.Println("attempt", attempts)
 		if attempts % 2 == 0 {
 			errorFix = 1.0
 		}
-		fmt.Println("with error fix of", errorFix)
 		routes = createRoutes(origin, distance*(errorFix)*(initFix), 8.0, routeOrder[attempts])
 		morePaths, avgDist := getDistance(routes, origin, float64(desired))
-		fmt.Println(avgDist, desired)
 		errorFix = desired / avgDist
 		pathDetails = append(pathDetails, morePaths...)
 
@@ -663,7 +651,6 @@ func executeRequest(input string, distanceString string) *FullResponse {
 	if len(pathDetails) == 0 {
 		return getErrorResponse("No paths found")
 	}
-	fmt.Println(len(pathDetails))
 	
 	var wg sync.WaitGroup
 	wg.Add(len(pathDetails))
@@ -678,7 +665,6 @@ func executeRequest(input string, distanceString string) *FullResponse {
 				temp.Path = append(temp.Path, pt.lat, pt.lng)
 			}
 			temp.Distance = pathDetails[i].distance
-			fmt.Println(temp.Distance)
 			temp.Directions = pathDetails[i].turns
 			result = append(result, *temp)
 		} (i)
@@ -828,7 +814,6 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 	temp3.Directions = []LocOfTurn{*stop1, *stop2, *stop3}
 
 	response := newFullResponse([]ResponseNew{*temp, *temp2, *temp3})
-	fmt.Println(response)
 
 	json.NewEncoder(w).Encode(response)
 
