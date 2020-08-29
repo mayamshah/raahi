@@ -15,9 +15,8 @@ import Avatar from '@material-ui/core/Avatar';
 import { FixedSizeList } from 'react-window';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import IconButton from '@material-ui/core/IconButton';
-import DirectionsIcon from '@material-ui/icons/Directions';
+import DirectionsCarIcon from '@material-ui/icons/DirectionsCar';
 import Tooltip from '@material-ui/core/Tooltip';
-
 
 function TrailViewer(trails) {
 	console.log(trails)
@@ -64,18 +63,29 @@ function TrailViewer(trails) {
             <List>
              {trails.trails.map((trail, index) => (
               	<ListItem button selected={index === currentIndex} onClick={() => changeStep(index)}>
-              	<ListItemAvatar>
-          			<Avatar style={{fontSize: '15px'}} variant="rounded">
-          			{Number(trail.DistFromOrg).toFixed(2).toString()}
-          			</Avatar>
-       			</ListItemAvatar>
-				<ListItemText primary={trail.Name} secondary={trail.Summary} />
+				<ListItemText primary={trail.Name} 
+				secondary={
+				            <React.Fragment>
+				              <Typography
+				                component="span"
+				                variant="body2"
+				                // className={classes.inline}
+				              >
+				               <Box fontStyle="italic">
+				                {Number(trail.DistFromOrg).toFixed(2).toString() + " mi from your location"}
+				                </Box>
+				              </Typography>
+				              <Typography>
+				              {trail.Summary}
+				              </Typography>
+				            </React.Fragment>
+				          }/>
 				<Divider variant="inset" component="li" />
 				{index === currentIndex &&	
 					<ListItemIcon>
-					<Tooltip title="Directions">
+					<Tooltip title="Directions To Trail">
 						<IconButton onClick={() => exportDirections()}>
-	                        <DirectionsIcon fontSize="large"/>
+	                        <DirectionsCarIcon fontSize="large"/>
 	                    </IconButton>
 	                 </Tooltip>
 					</ListItemIcon>}

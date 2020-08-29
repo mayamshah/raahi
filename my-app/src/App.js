@@ -29,6 +29,9 @@ import MenuIcon from '@material-ui/icons/Menu';
 import DirectionsIcon from '@material-ui/icons/Directions';
 import DirectionsRunIcon from '@material-ui/icons/DirectionsRun';
 import TimelineIcon from '@material-ui/icons/Timeline';
+import LinkedInIcon from '@material-ui/icons/LinkedIn';
+import GitHubIcon from '@material-ui/icons/GitHub';
+import MailIcon from '@material-ui/icons/Mail';
 import ButtonGroup from '@material-ui/core/ButtonGroup';
 import Tooltip from '@material-ui/core/Tooltip';
 import Drawer from '@material-ui/core/Drawer';
@@ -38,6 +41,19 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import clsx from 'clsx';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import Card from '@material-ui/core/Card';
+import CardActionArea from '@material-ui/core/CardActionArea';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
+import CardMedia from '@material-ui/core/CardMedia';
+import Container from '@material-ui/core/Container';
+import Divider from '@material-ui/core/Divider';
+import Slide from '@material-ui/core/Slide';
+import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
+import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
+import Checkbox from '@material-ui/core/Checkbox';
+import { green, orange } from '@material-ui/core/colors';
+
 
 
 
@@ -330,10 +346,7 @@ function Display() {
 
   function mapClicked(index) {
     console.log("map clicked");
-    console.log(index)
-    setCurrentIndex(index)
-    setGridView(false)
-    setShow(true)
+    
   }
 
   const handleClose = () => {
@@ -356,10 +369,16 @@ function Display() {
           What is your location?
         </Typography>
         <form className={classes.textField} noValidate>
-          <TextField id="standard-basic" label="Address" onChange={e => handleAddress(e)}/>
+          <TextField id="standard-basic" label="Address" onChange={e => handleAddress(e)} onKeyPress={(ev) => {
+                                                                                            console.log(`Pressed keyCode ${ev.key}`);
+                                                                                            if (ev.key === 'Enter') {
+                                                                                              // Do code here
+                                                                                              ev.preventDefault();
+                                                                                            }
+                                                                                          }}/>
         </form>
         <Typography className={classes.heading} component="h1" variant="h6">
-          What is your desired route length?
+          What is your desired distance?
         </Typography>
         <form className={classes.textField} noValidate>
           <TextField id="standard-basic" label="Miles" onChange={e => handleMiles(e)}/>
@@ -578,20 +597,157 @@ const overallStyles = makeStyles((theme) => ({
     }),
     marginLeft: 0,
   },
+
+  paper: {
+      marginTop: theme.spacing(3),
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      padding: theme.spacing(2),
+      width: 600,
+    },
 }));
 
 const drawerWidth = 240;
 
+const albumStyles = makeStyles((theme) => ({
+
+    heroContent: {
+       [theme.breakpoints.up(1000)]: {
+        margin: theme.spacing(5,10,0,10),
+        },
+        margin: theme.spacing(5,5,0,5),
+      },
+    textBox: {
+      width: 500
+    },
+
+    root: {
+    display: 'flex',
+    flexDirection: 'column',
+      },
+  media: {
+    height: 300,
+  },
+  controls: {
+    display: 'flex',
+    alignItems: 'center',
+    paddingLeft: theme.spacing(1),
+    paddingBottom: theme.spacing(1),
+  },
+
+  cardGrid: {
+    paddingLeft: theme.spacing(5),
+    paddingRight: theme.spacing(5),
+    paddingBottom: theme.spacing(10),
+  },
+
+    overall_layout: {
+    display: 'flex',
+    flexWrap: "wrap",
+    // [theme.breakpoints.down(1100)]: {
+    //   display: "",
+    //   flexWrap: "nowrap",
+    // }
+  },
+  container: {
+    display: 'flex',
+  },
+
+  layout: {
+    width: 500,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    // [theme.breakpoints.down(1010)]: {
+    //   marginLeft: 'auto',
+    //   marginRight: 'auto',
+    // },
+  },
+
+}));
 
 function About() {
+  const classes = albumStyles()
   return (
-      <Paper>
-        <Box alignItems="center" justifyContent="center" display="flex" >
-        <Typography component="h1" variant="h5">
-              About
+    <div className={classes.heroContent}>
+
+        <Typography component="h1" variant="h3" align="center" color="textPrimary" gutterBottom>
+          Our Name
+        </Typography>
+        <Box p={5}>
+        <Typography variant="h5" align="center" color="textSecondary" paragraph gutterBottom>
+          Raahi means traveler in Hindi. We are all travelers on the path of life, and hopefully this app can find you some more paths on which to travel.
         </Typography>
         </Box>
-      </Paper>
+        <Divider />
+        <Box p={5}>
+         <Typography component="h1" variant="h3" align="center" color="textPrimary" gutterBottom>
+            Our Team
+        </Typography>
+        </Box>
+       
+    <Container className={classes.cardGrid} maxWidth="md">
+    <Grid container spacing={4}>
+      <Grid item xs={6} >
+      <Card className={classes.root}>
+          <CardMedia
+            className={classes.media}
+            image={require('./images/maya.jpg')}
+          />
+          <CardContent>
+            <Typography gutterBottom variant="h5" component="h2">
+              Maya Shah
+            </Typography>
+            <Typography variant="body2" color="textSecondary" component="p">
+              Maya is from Saratoga, California majoring in Business Administration at Carnegie Mellon University pursuing an additional major in Computer Science. 
+            </Typography>
+          </CardContent>
+        <div className={classes.controls}>
+          <IconButton aria-label="linkedin" href="https://www.linkedin.com/in/mayamshah/">
+            <LinkedInIcon/>
+          </IconButton>
+          <IconButton aria-label="github" href="https://github.com/mayamshah">
+            <GitHubIcon/>
+          </IconButton>
+          <IconButton aria-label="mail" href="mailto:mayashah@andrew.cmu.edu">
+            <MailIcon/>
+          </IconButton>
+        </div>
+      </Card>
+      </Grid>
+      <Grid item xs={6} >
+      <Card className={classes.root}>
+          <CardMedia
+            className={classes.media}
+            image={require('./images/agam.jpg')}
+          />
+          <CardContent>
+            <Typography gutterBottom variant="h5" component="h2">
+              Agam Kumar
+            </Typography>
+            <Typography variant="body2" color="textSecondary" component="p">
+              Agam is from Edison, New Jersey majoring in Statistics and Machine Learning at Carnegie Mellon University pursuing an additional major in Computer Science.             </Typography>
+          </CardContent>
+        <div className={classes.controls}>
+          <IconButton aria-label="linkedin" href="https://www.linkedin.com/in/agam-kumar/">
+            <LinkedInIcon/>
+          </IconButton>
+          <IconButton aria-label="github" href="https://github.com/agam-kumar">
+            <GitHubIcon/>
+          </IconButton>
+          <IconButton aria-label="mail" href="mailto:agamk@andrew.cmu.edu">
+            <MailIcon/>
+          </IconButton>
+        </div>
+      </Card>
+    </Grid>
+    </Grid>
+    </Container>
+
+     <Typography variant="h5" align="center" color="textSecondary" paragraph>
+         The two developers met in college. They realized they worked well together and had a shared passion for software development. Raahi thus started out as just the idea to continue working together over the summer. In efforts of staying active over quarantine, the developers searched for routes of a given distance that they could run in their neighborhoods to no avail. They now present this app to aide those with similar interests.
+        </Typography>
+
+    </div>
     )
 }
 
@@ -599,24 +755,40 @@ function App() {
 
   const classes = overallStyles();
     const [drawerState, setDrawerState] = useState(false);
-    const [display, setDisplay] = useState(true);
+    const [display, setDisplay] = useState(false);
     const [about, setAbout] = useState(false);
+    const [intro, setIntro] = useState(true);
+    const outerTheme = createMuiTheme({
+  palette: {
+    
+  },
+});
 
     function homeClicked() {
       setDisplay(true) 
       setAbout(false)
+      setIntro(false)
       setDrawerState(false)
     }
 
     function aboutClicked() {
       setDisplay(false) 
       setAbout(true)
+      setIntro(false)
+      setDrawerState(false)
+    }
+
+    function instructionsClicked() {
+      setDisplay(false) 
+      setAbout(false)
+      setIntro(true)
       setDrawerState(false)
     }
 
   return (
     <React.Fragment>
       <CssBaseline />
+      <ThemeProvider theme={outerTheme}>
       <AppBar position="relative"
       className={clsx(classes.appBar, {
           [classes.appBarShift]: drawerState,
@@ -626,7 +798,7 @@ function App() {
         {true && 
             <div>
             <IconButton align='right' aria-label="route info" onClick={ () => setDrawerState(true)}>
-               <MenuIcon />
+               <MenuIcon style={{ color: '#FFFFFF' }}/>
             </IconButton>
             <Drawer anchor={'left'} open={drawerState}className={classes.drawer} classes={{
           paper: classes.drawerPaper,
@@ -637,6 +809,9 @@ function App() {
               </ListItem>
               <ListItem button onClick={() => aboutClicked()}>
               <ListItemText primary="About" />
+              </ListItem>
+              <ListItem button onClick={() => instructionsClicked()}>
+              <ListItemText primary="Instructions" />
               </ListItem>
             </List>
             </Drawer>
@@ -650,12 +825,42 @@ function App() {
       <main
         
       >
+       {intro && 
+          <Fade in={true} timeout={{ enter: 3000 }}>
+          <Paper elevation={4} className={classes.paper}>
+            <Typography variant="h3" align="center">
+            How to Use Raahi
+            </Typography>
+            <Box p={4}>
+            <Divider/>
+            </Box>
+            <Typography component="h1" variant="h6" color="textSecondary" align="center">
+            Enter a location and distance. Raahi will then generate routes near you to walk, run, or bike. The routes begin and end at your entered location and are at least your desired distance. Raahi also offers the option to find trails near you and directions to get to them.
+
+
+            </Typography>
+            <Typography component="h1" variant="h6" color="textSecondary">
+            </Typography>
+            <Typography component="h1" variant="h6" color="textSecondary">
+            </Typography>
+
+            <Slide direction="right" in={true} timeout={{ enter: 1000 }} mountOnEnter unmountOnExit>
+            <Grid container alignItems="flex-start" justify="flex-end" direction="row">
+
+              <Tooltip title="Go">
+               <IconButton aria-label="mail" onClick={() => homeClicked()}>
+                    <ArrowForwardIcon/>
+              </IconButton>
+              </Tooltip>
+              </Grid>
+            </Slide>
+          </Paper>
+        </Fade>
+       }
        {display && <Display/>}
        {about && <About/>}
       </main>
-
-
-       
+      </ThemeProvider>
     </React.Fragment>
   );
 }

@@ -603,6 +603,10 @@ func executeRequest(input string, distanceString string) *FullResponse {
 		return getErrorResponse("Not a valid distance")
 	}
 
+	if distance < 0 {
+		return getErrorResponse("Not a valid distance")
+	}
+
 	//form url from address
 	url := addressToAPICall(input)
 
