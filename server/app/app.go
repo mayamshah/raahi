@@ -12,12 +12,12 @@ import (
 	"sync"
 )
 
-const KEY = "&key=AIzaSyB32cCcL4gD_WIYPP6dAVSprY_QYE3arsk"
+var KEY = "&key="
 const GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json?address="
 const DISTANCE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&"
 const NEAREST_RODE_URL = "https://roads.googleapis.com/v1/nearestRoads?points="
 const TRAILS_URL = "https://www.trailrunproject.com/data/get-trails?lat="
-const TRPKEY = "&key=200872374-da245a0b782e30b71d825d92027d8012"
+var TRPKEY = "&key="
 const MODE = "&mode=walking"
 const EQUATOR_LENGTH = 69.172
 const NINTERSECT_URL = "http://api.geonames.org/findNearestIntersectionJSON?lat="
@@ -821,4 +821,11 @@ func Tester(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 
+}
+
+func Init(google_key string, trails_key string) {
+	KEY += google_key
+	KEY = strings.TrimSuffix(KEY, "\n")
+	TRPKEY += trails_key
+	TRPKEY = strings.TrimSuffix(TRPKEY, "\n")
 }

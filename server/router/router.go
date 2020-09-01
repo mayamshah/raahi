@@ -6,9 +6,12 @@ import (
 )
 
 // Router is exported and used in main.go
-func Router() *mux.Router {
+func Router(google_key string, trails_key string) *mux.Router {
 
 	router := mux.NewRouter()
+
+	app.Init(google_key, trails_key)
+
 	router.HandleFunc("/api/execute", app.Execute).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/executetrail", app.ExecuteTrail).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/tester", app.Tester).Methods("POST", "OPTIONS")
