@@ -366,6 +366,7 @@ func createRoutes(point Point, distance float64, numb float64, routeFunction mak
 	angleIncrease := 360 / numb
 	num := int(numb)
 	var routes [][]Point
+	var mu sync.Mutex
 	var wg sync.WaitGroup
 	wg.Add(num)
 	for i := 0; i < num; i++ {
@@ -373,7 +374,9 @@ func createRoutes(point Point, distance float64, numb float64, routeFunction mak
 			defer wg.Done()
 			route := routeFunction(point, distance, float64(i) * angleIncrease)
 			if (len(route) > 0) {
+				mu.Lock()
 				routes = append(routes, route)
+				mu.Unlock()
 			}
 		} (i)
 	}
@@ -659,6 +662,7 @@ func executeRequest(input string, distanceString string) *FullResponse {
 	var wg sync.WaitGroup
 	wg.Add(len(pathDetails))
 	var result []ResponseNew
+	var mu sync.Mutex
 	for i := 0; i < len(pathDetails); i++ {
 		go func (i int) {
 			defer wg.Done()
@@ -670,7 +674,9 @@ func executeRequest(input string, distanceString string) *FullResponse {
 			}
 			temp.Distance = pathDetails[i].distance
 			temp.Directions = pathDetails[i].turns
+			mu.Lock()
 			result = append(result, *temp)
+			mu.Unlock()
 		} (i)
 	}
 	wg.Wait()

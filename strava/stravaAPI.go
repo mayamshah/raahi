@@ -106,6 +106,7 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 	wg.Add(len(responses))
 
 	var result []ResponseNew
+	var mu sync.Mutex
 	for i := 0; i < len(responses); i++ {
 		go func (i int) {
 			defer wg.Done()
@@ -142,7 +143,9 @@ func ExecuteStravaRequest(input string, distance_string string, radius_string st
 					// temp.Distance = responses[i].Distance*mtoMi
 					temp.Distance = dist*mtoMi //we're returning a modified route we should return the appropriate distance
 					temp.Directions = turnLocs
+					mu.Lock()
 					result = append(result, *temp)
+					mu.Unlock()
 				}
 			}
 		} (i)
